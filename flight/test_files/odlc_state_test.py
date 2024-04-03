@@ -13,14 +13,25 @@ from state_machine.flight_settings import FlightSettings
 
 def start_state_machine(state_machine: StateMachine) -> None:
     """
-    add
+    Start the state machine.
+
+    Parameters
+    ----------
+    state_machine: StateMachine
+        The state_machine to start
     """
     asyncio.run(state_machine.run())
 
 
 async def run_test(_sim: bool) -> None:
     """
-    add
+    Tests the the ODLC state in the State Machine. Runs through an example run of the ODLC and its functions,
+    testing if the drone can find 5 waypoints, as well as checking to make sure the JSON file is output correctly.
+
+    Parameters
+    ----------
+    _sim: bool
+        Whether or not the test is being run in a simulation
     """
     logging.basicConfig(level=logging.INFO)
     drone = Drone()
