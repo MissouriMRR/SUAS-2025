@@ -3,7 +3,6 @@
 import asyncio
 import logging
 from multiprocessing import Process
-import sys
 import time
 from typing import Any, Dict
 from mavsdk.telemetry import FlightMode, LandedState
@@ -11,7 +10,6 @@ from mavsdk.telemetry import FlightMode, LandedState
 from state_machine.drone import Drone
 from state_machine.state_machine import StateMachine
 from state_machine.states import Start
-from state_machine.states.state import State
 from state_machine.flight_settings import FlightSettings
 from state_machine.state_tracker import read_state_data
 
@@ -70,8 +68,6 @@ class FlightManager:
             target=self._run_state_machine,
             args=(flight_settings_obj,),
         )
-
-        self._run_kill_switch(state_machine_process)
 
         state_machine_process.start()
 
@@ -141,12 +137,16 @@ class FlightManager:
                 logging.info("Kill switch has been enabled.")
                 break
 
-        # async for flight_mode in self.drone.system.telemetry.flight_mode():
-        #    while flight_mode != FlightMode.POSCTL:
-        #        time.sleep(1)
-        time.sleep(20)
+        async for flight_mode in self.drone.system.telemetry.flight_mode():
+            while flight_mode != FlightMode.POSCTL:
+                time.sleep(1)
 
         logging.critical("Kill switch activated. Terminating state machine.")
+
+        # await self.drone.system.action.takeoff()
+        await self.drone.system.follow_me.start()
+
+        time.sleep(10)
 
         await self.drone.system.offboard.stop()
 
