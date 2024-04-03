@@ -55,7 +55,7 @@ def start_2(flight_process: Process) -> None:
     """
     flight_manager: FlightManager = FlightManager()
     flight_manager.drone.address = "udp://:14540"
-    asyncio.run(FlightManager().kill_switch(flight_process))
+    asyncio.run(FlightManager().run_kill_switch(flight_process))
 
 
 async def start_test() -> None:

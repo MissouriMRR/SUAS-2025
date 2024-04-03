@@ -28,7 +28,7 @@ class FlightManager:
     _run_state_machine(drone: Drone) -> None
         Create and run a state machine until completion in the event loop.
         This method should be called in its own process.
-    _run_kill_switch(state_machine_process: Process, drone: Drone) -> None
+    run_kill_switch(state_machine_process: Process, drone: Drone) -> None
         Create and run a kill switch in the event loop.
     _kill_switch(state_machine_process: Process, drone: Drone) -> Awaitable[None]
         Enable the kill switch and wait until it activates. The drone should be
@@ -71,7 +71,7 @@ class FlightManager:
 
         state_machine_process.start()
 
-        await self._run_kill_switch(state_machine_process)
+        await self.run_kill_switch(state_machine_process)
 
         try:
             while state_machine_process.is_alive():
@@ -103,7 +103,7 @@ class FlightManager:
             StateMachine(Start(self.drone, flight_settings), self.drone, flight_settings).run()
         )
 
-    async def _run_kill_switch(self, process: Process) -> None:
+    async def run_kill_switch(self, process: Process) -> None:
         """
         Create and run a kill switch in the event loop.
 
