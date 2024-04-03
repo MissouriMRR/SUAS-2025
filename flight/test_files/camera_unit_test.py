@@ -9,7 +9,13 @@ import gphoto2
 
 
 async def test_capture_image(photo_num: int = 1) -> None:
-    """Test the capture_photo method of the Camera class."""
+    """Test the capture_photo method of the Camera class.
+
+    Parameters
+    ----------
+    photo_num : int, optional
+        The number of photos to take, by default 1
+    """
     logging.info("Connecting to camera...")
     camera: gphoto2.Camera = gphoto2.Camera()
     try:
