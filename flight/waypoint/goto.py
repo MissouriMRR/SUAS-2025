@@ -6,6 +6,7 @@ for moving the drone to a certain waypoint and stopping there for 15 secs
 import asyncio
 import logging
 
+from flight.waypoint.calculate_distance import calculate_distance
 from mavsdk import System
 
 
@@ -53,14 +54,10 @@ async def move_to(
             drone_long: float = position.longitude_deg
             drone_alt: float = position.relative_altitude_m
 
+            print("HAMMOD HAMOOD")
+            print(calculate_distance(drone_lat, drone_lat, drone_alt, latitude, longitude, altitude))
             #  accurately checks if location is reached and stops for 15 secs and then moves on.
-            if (
-                (round(drone_lat, int(6 * fast_param)) == round(latitude, int(6 * fast_param)))
-                and (
-                    round(drone_long, int(6 * fast_param)) == round(longitude, int(6 * fast_param))
-                )
-                and (round(drone_alt, 1) == round(altitude, 1))
-            ):
+            if (calculate_distance < 5):
                 location_reached = True
                 logging.info("arrived")
                 break
