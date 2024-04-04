@@ -23,10 +23,11 @@ def start_state_machine(state_machine: StateMachine) -> None:
     asyncio.run(state_machine.run())
 
 
-async def run_test(_sim: bool) -> None:
+async def run_test(_sim: bool, odlc_count: int = 5) -> None:
     """
-    Tests the the ODLC state in the State Machine. Runs through an example run of the ODLC and its functions,
-    testing if the drone can find 5 waypoints, as well as checking to make sure the JSON file is output correctly.
+    Tests the the ODLC state in the State Machine. Runs through an example run of the ODLC
+    and its functions, testing if the drone can find 5 waypoints, as well as checking to make
+    sure the JSON file is output correctly.
 
     Parameters
     ----------
@@ -44,7 +45,7 @@ async def run_test(_sim: bool) -> None:
     state_machine_process.start()
 
     activated_odlcs = 0
-    while activated_odlcs != 5:
+    while activated_odlcs != odlc_count:
         try:
             with open("flight/data/output.json", "r", encoding="UTF-8") as file:
                 output_data = json.load(file)

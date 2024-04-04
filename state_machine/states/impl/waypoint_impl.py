@@ -106,7 +106,6 @@ async def run(self: Waypoint) -> State:
 
             curr_altitude: float = drone_position.relative_altitude_m
             # altitude_slope: float = (waypoint.altitude - curr_altitude) / path_length
-            # removing this because "too many local variables" eww
 
             goto_points.pop()  # The last point is just the waypoint
 
