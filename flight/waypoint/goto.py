@@ -10,6 +10,9 @@ from mavsdk import System
 
 from flight.waypoint.calculate_distance import calculate_distance
 
+# Waypoint tolerance in meters: 6 meters = 19.685 feet
+WAYPOINT_TOLERANCE: int = 6
+
 
 # duplicate code disabled since we may want different functionality
 # for waypoints/odlcs search points
@@ -52,8 +55,8 @@ async def move_to(drone: System, latitude: float, longitude: float, altitude: fl
             total_distance: float = calculate_distance(
                 drone_lat, drone_long, drone_alt, latitude, longitude, altitude
             )
-            #  accurately checks if location is reached and stops for 15 secs and then moves on.
-            if total_distance < 5:
+
+            if total_distance < WAYPOINT_TOLERANCE:  # 6 meters = 19.685 feet.
                 location_reached = True
                 logging.info("Arrived %sm away from waypoint", total_distance)
                 break
