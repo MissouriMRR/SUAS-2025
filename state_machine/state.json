@@ -1,7 +1,7 @@
 {
-    "state": "Takeoff",
+    "state": "",
     "drone": {
-        "address": "192.168.1.1",
+        "address": "",
         "odlc_scan": true
     },
     "flight_settings": {

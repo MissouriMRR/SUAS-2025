@@ -8,13 +8,16 @@ import logging
 
 from mavsdk import System
 
+from flight.waypoint.calculate_distance import calculate_distance
+
+# Waypoint tolerance in meters: 6 meters = 19.685 feet
+WAYPOINT_TOLERANCE: int = 6
+
 
 # duplicate code disabled since we may want different functionality
 # for waypoints/odlcs search points
 # pylint: disable=duplicate-code
-async def move_to(
-    drone: System, latitude: float, longitude: float, altitude: float, fast_param: float
-) -> None:
+async def move_to(drone: System, latitude: float, longitude: float, altitude: float) -> None:
     """
     This function takes in a latitude, longitude and altitude and autonomously
     moves the drone to that waypoint. This function will also auto convert the altitude
@@ -30,10 +33,6 @@ async def move_to(
         a float containing the requested longitude to move to
     altitude: float
         a float contatining the requested altitude to go to in meters
-    fast_param: float
-        a float that determines if the drone will take less time checking its precise location
-        before moving on to another waypoint. If its 1, it will move at normal speed,
-        if its less than 1(0.83), it will be faster.
     """
 
     # get current altitude
@@ -53,16 +52,13 @@ async def move_to(
             drone_long: float = position.longitude_deg
             drone_alt: float = position.relative_altitude_m
 
-            #  accurately checks if location is reached and stops for 15 secs and then moves on.
-            if (
-                (round(drone_lat, int(6 * fast_param)) == round(latitude, int(6 * fast_param)))
-                and (
-                    round(drone_long, int(6 * fast_param)) == round(longitude, int(6 * fast_param))
-                )
-                and (round(drone_alt, 1) == round(altitude, 1))
-            ):
+            total_distance: float = calculate_distance(
+                drone_lat, drone_long, drone_alt, latitude, longitude, altitude
+            )
+
+            if total_distance < WAYPOINT_TOLERANCE:  # 6 meters = 19.685 feet.
                 location_reached = True
-                logging.info("arrived")
+                logging.info("Arrived %sm away from waypoint", total_distance)
                 break
 
         # tell machine to sleep to prevent constant polling, preventing battery drain
