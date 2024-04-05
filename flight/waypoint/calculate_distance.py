@@ -11,6 +11,7 @@ import utm
 
 from mavsdk import System
 
+
 def calculate_distance(
     lat_deg_1: float,
     lon_deg_1: float,
