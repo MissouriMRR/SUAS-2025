@@ -255,4 +255,4 @@ def Image_Address_To_Contour(address):
     return cnt
 def test_all_shapes():
     for i in range(8):
-        print("shape: " + classify_shape(Image_Address_To_Contour("/home/lukedennison/Pictures/bin_real_images/shape" + str(i + 1) + ".png")))
+        print("shape: " + classify_shape(Image_Address_To_Contour("/Users/ouyangyuxuan/Desktop/NewImg/shape" + str(i + 1) + ".png")))
