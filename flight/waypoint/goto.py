@@ -60,7 +60,7 @@ async def move_to(drone: System, latitude: float, longitude: float, altitude: fl
                 < 5
             ):
                 location_reached = True
-                logging.info("Arrived", total_distance, "m away from waypoint")
+                logging.info("Arrived %sm away from waypoint", total_distance)
                 break
 
         # tell machine to sleep to prevent constant polling, preventing battery drain
