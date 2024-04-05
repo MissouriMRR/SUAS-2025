@@ -6,6 +6,7 @@ import logging
 import json
 from multiprocessing import Process, Value
 from multiprocessing.sharedctypes import SynchronizedBase
+import time
 
 from flight.camera import Camera
 
@@ -133,15 +134,12 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
 
         gps_data: GPSData = extract_gps(self.flight_settings.path_data_path)
 
-        # traverses the 3 waypoints starting at the midpoint on left to midpoint on the right
-        # then to the top left corner at the rectangle
-        with open("flight/data/output.json", encoding="ascii") as output:
-            airdrop_dict = json.load(output)
-            airdrops: int = len(airdrop_dict)
-            point: int
-        while airdrops < self.flight_settings.standard_object_count:
+        while True:
             logging.info("Starting odlc zone flyover")
 
+            # traverses the 3 waypoints starting at the midpoint on left to midpoint on the right
+            # then to the top left corner at the rectangle
+            point: int
             for point in range(3):
                 take_photos: bool = False
 
@@ -177,9 +175,15 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
                     take_photos,
                 )
 
+            if self.flight_settings.standard_object_count <= 0:
+                break
+
             with open("flight/data/output.json", encoding="ascii") as output:
                 airdrop_dict = json.load(output)
-                airdrops = len(airdrop_dict)
+                airdrops: int = len(airdrop_dict)
+
+            if airdrops >= self.flight_settings.standard_object_count:
+                break
 
         self.drone.odlc_scan = False
     except asyncio.CancelledError as ex:
@@ -218,7 +222,17 @@ def vision_odlc_logic(
             if flight_settings.standard_object_count == 0
             else flyover_pipeline
         )
-        pipeline("flight/data/camera.json", capture_status, "flight/data/output.json")
+
+        while True:
+            try:
+                with open("flight/data/camera.json", "r", encoding="utf-8") as file:
+                    file.close()  # Use the file variable so pylint doesn't complain
+
+                pipeline("flight/data/camera.json", capture_status, "flight/data/output.json")
+                break
+            except FileNotFoundError as ex:
+                logging.info("Waiting for %s to exist", ex.filename)
+                time.sleep(1.0)  # camera.json might not exist yet
     except asyncio.CancelledError as ex:
         logging.error("ODLC state canceled")
         raise ex
