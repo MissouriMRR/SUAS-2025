@@ -21,6 +21,7 @@ MOVE_TO_TEST_SYSTEM_ADDRESS: str = "udp://:14540"
 MOVE_TO_TEST_ALTITUDE: int = 12
 MOVE_TO_TEST_SPEED: int = 20
 
+
 async def run() -> None:
     """
     This function is a driver to test the goto function and runs through the
