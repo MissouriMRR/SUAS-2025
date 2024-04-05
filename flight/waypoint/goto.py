@@ -6,16 +6,15 @@ for moving the drone to a certain waypoint and stopping there for 15 secs
 import asyncio
 import logging
 
-from flight.waypoint.calculate_distance import calculate_distance
 from mavsdk import System
+
+from flight.waypoint.calculate_distance import calculate_distance
 
 
 # duplicate code disabled since we may want different functionality
 # for waypoints/odlcs search points
 # pylint: disable=duplicate-code
-async def move_to(
-    drone: System, latitude: float, longitude: float, altitude: float, fast_param: float
-) -> None:
+async def move_to(drone: System, latitude: float, longitude: float, altitude: float) -> None:
     """
     This function takes in a latitude, longitude and altitude and autonomously
     moves the drone to that waypoint. This function will also auto convert the altitude
@@ -55,9 +54,14 @@ async def move_to(
             drone_alt: float = position.relative_altitude_m
 
             print("HAMMOD HAMOOD")
-            print(calculate_distance(drone_lat, drone_lat, drone_alt, latitude, longitude, altitude))
+            print(
+                calculate_distance(drone_lat, drone_long, drone_alt, latitude, longitude, altitude)
+            )
             #  accurately checks if location is reached and stops for 15 secs and then moves on.
-            if (calculate_distance < 5):
+            if (
+                calculate_distance(drone_lat, drone_long, drone_alt, latitude, longitude, altitude)
+                < 5
+            ):
                 location_reached = True
                 logging.info("arrived")
                 break

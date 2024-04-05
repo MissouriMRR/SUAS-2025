@@ -22,12 +22,9 @@ run_test(_sim)
 
 import asyncio
 import logging
-import math
 import time
 import sys
 from typing import Final
-
-import utm
 
 from flight.extract_gps import BoundaryPoint, GPSData, extract_gps
 from flight.extract_gps import Waypoint as Waylist
@@ -181,7 +178,7 @@ async def run_test(_sim: bool) -> None:  # Temporary fix for unused variable
     # Output logging info to stdout
     logging.basicConfig(filename="/dev/stdout", level=logging.INFO)
 
-    path_data_path: str = "flight/data/golf_data.json" if _sim else "flight/data/golf_data.json"
+    path_data_path: str = "flight/data/waypoint_data.json" if _sim else "flight/data/golf_data.json"
 
     flight_manager: FlightManager = FlightManager()
     asyncio.ensure_future(waypoint_check(flight_manager.drone, _sim, path_data_path))

@@ -123,12 +123,12 @@ async def run(self: Waypoint) -> State:
                 # Gradually move toward goal altitude
                 curr_altitude += altitude_slope * line_segment.length()
 
-                await move_to(self.drone.system, lat_deg, lon_deg, curr_altitude, 1.0)
+                await move_to(self.drone.system, lat_deg, lon_deg, curr_altitude)
 
             # use 0.9 for fast_param to get within 25 ft of waypoint with plenty of leeway
             # while being fast (values above 5/6 and less than 1 check for lat and lon with
             # 5 digit of precision, or about 1.11 m)
-            await move_to(self.drone.system, lat_deg, lon_deg, waypoint.altitude, 0.9)
+            await move_to(self.drone.system, lat_deg, lon_deg, waypoint.altitude)
 
             logging.info("Reached waypoint %d", waypoint_num)
 
