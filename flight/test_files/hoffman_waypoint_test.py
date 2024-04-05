@@ -21,10 +21,6 @@ MOVE_TO_TEST_SYSTEM_ADDRESS: str = "udp://:14540"
 MOVE_TO_TEST_ALTITUDE: int = 12
 MOVE_TO_TEST_SPEED: int = 20
 
-# Defining fast_param constant
-MOVE_TO_TEST_FAST_PARAM: float = 0.83
-
-
 async def run() -> None:
     """
     This function is a driver to test the goto function and runs through the
@@ -86,7 +82,7 @@ async def run() -> None:
     # move to each waypoint in mission
     point: int
     for point in range(len(lats)):
-        await move_to(drone, lats[point], longs[point], 100, MOVE_TO_TEST_FAST_PARAM)
+        await move_to(drone, lats[point], longs[point], 100)
 
     # return home
     logging.info("Last waypoint reached")
