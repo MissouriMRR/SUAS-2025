@@ -9,6 +9,7 @@ import json
 
 from flight.camera import Camera
 from flight.waypoint.goto import move_to
+from state_machine.state_tracker import update_state
 from state_machine.states.airdrop import Airdrop
 from state_machine.states.odlc import ODLC
 from state_machine.states.state import State
@@ -43,7 +44,8 @@ async def run(self: ODLC) -> State:
     https://github.com/python/typeshed/issues/8799
     """
     try:
-        # Synchronized type hint is broken, see https://github.com/python/typeshed/issues/8799
+        update_state("ODLC")
+        # Syncronized type hint is broken, see https://github.com/python/typeshed/issues/8799
         capture_status: SynchronizedBase[c_bool] = Value(c_bool, False)  # type: ignore
 
         vision_process = Process(target=vision_odlc_logic, args=(capture_status,))

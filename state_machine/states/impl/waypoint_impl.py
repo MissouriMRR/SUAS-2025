@@ -1,5 +1,7 @@
 """Implement the behavior of the Waypoint state."""
 
+# pylint: disable=too-many-locals
+
 import asyncio
 import logging
 from typing import Final
@@ -24,6 +26,7 @@ from state_machine.states.airdrop import Airdrop
 from state_machine.states.odlc import ODLC
 from state_machine.states.state import State
 from state_machine.states.waypoint import Waypoint
+from state_machine.state_tracker import update_state
 
 BOUNDARY_SHRINKAGE: Final[float] = 5.0  # in meters
 
@@ -52,6 +55,7 @@ async def run(self: Waypoint) -> State:
     """
 
     try:
+        update_state("Waypoint")
         logging.info("Waypoint state running")
 
         if self.flight_settings.skip_waypoint:
@@ -131,14 +135,11 @@ async def run(self: Waypoint) -> State:
                 ) * line_segment.length()
 
                 try:
-                    await move_to(self.drone.system, lat_deg, lon_deg, curr_altitude, 0.83)
+                    await move_to(self.drone.system, lat_deg, lon_deg, curr_altitude)
                 except ActionError:
                     logging.warning(ActionError)
 
-            # use 0.9 for fast_param to get within 25 ft of waypoint with plenty of leeway
-            # while being fast (values above 5/6 and less than 1 check for lat and lon with
-            # 5 digit of precision, or about 1.11 m)
-            await move_to(self.drone.system, lat_deg, lon_deg, waypoint.altitude, 0.9)
+            await move_to(self.drone.system, lat_deg, lon_deg, waypoint.altitude)
 
             logging.info("Reached waypoint %d", waypoint_num)
 

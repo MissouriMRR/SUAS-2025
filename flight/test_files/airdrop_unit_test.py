@@ -54,7 +54,6 @@ async def airdrop_run(drone: Drone, flight_settings: FlightSettings) -> None:
         settings for flight to be passed into the statemachine
     """
     drone.odlc_scan = False
-    drone.bottle_num = 4
     await StateMachine(Airdrop(drone, flight_settings), drone, flight_settings).run()
 
 
