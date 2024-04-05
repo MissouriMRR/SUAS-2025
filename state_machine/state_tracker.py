@@ -3,6 +3,7 @@ Used to update State and flight settings in json with kill switch
 """
 
 import json
+import logging
 from typing import Any
 
 from state_machine.drone import Drone
@@ -29,9 +30,9 @@ def read_state_data(file_path: str = DEFAULT_STATE_PATH) -> None | dict[str, Any
         with open(file_path, "r", encoding="utf-8") as file:
             return json.load(file)
     except FileNotFoundError:
-        print(f"File {file_path} not found.")
+        logging.warning("File %s not found.", file_path)
     except json.JSONDecodeError:
-        print(f"Error decoding JSON from file {file_path}.")
+        logging.warning("Error decoding JSON from file %s.", file_path)
 
     return None  # Return None if there was an error reading the file
 
@@ -52,10 +53,10 @@ def update_state(new_state: str, file_path: str = DEFAULT_STATE_PATH) -> None:
         with open(file_path, "r", encoding="utf-8") as file:
             data: dict[str, Any] = json.load(file)
     except FileNotFoundError:
-        print(f"File {file_path} not found.")
+        logging.warning("File %s not found.", file_path)
         return
     except json.JSONDecodeError:
-        print(f"Error decoding JSON from file {file_path}.")
+        logging.warning("Error decoding JSON from file %s.", file_path)
         return
 
     # Step 2: Update the 'state' field with the new state
@@ -65,7 +66,7 @@ def update_state(new_state: str, file_path: str = DEFAULT_STATE_PATH) -> None:
     with open(file_path, "w", encoding="utf-8") as file:
         json.dump(data, file, indent=4)
 
-    print(f"State updated to '{new_state}' in {file_path}.")
+    logging.info("State updated to '%s' in %s.", new_state, file_path)
 
 
 def read_state_from_json(file_path: str = DEFAULT_STATE_PATH) -> None | str:
@@ -87,9 +88,9 @@ def read_state_from_json(file_path: str = DEFAULT_STATE_PATH) -> None | str:
             data: dict[str, Any] = json.load(file)
             return data.get("state", None)  # Returns None if 'state' key is not found
     except FileNotFoundError:
-        print(f"File {file_path} not found.")
+        logging.warning("File %s not found.", file_path)
     except json.JSONDecodeError:
-        print(f"Error decoding JSON from file {file_path}.")
+        logging.warning("Error decoding JSON from file %s.", file_path)
 
     return None  # Return None if there was an error reading the file
 
@@ -110,7 +111,7 @@ def update_drone(drone: Drone, file_path: str = DEFAULT_STATE_PATH) -> None:
             data: dict[str, Any] = json.load(file)
 
         if "drone" not in data:
-            print("No 'drone' category in JSON.")
+            logging.warning("No 'drone' category in JSON.")
             return
 
         if drone.address is not None:
@@ -121,13 +122,13 @@ def update_drone(drone: Drone, file_path: str = DEFAULT_STATE_PATH) -> None:
         with open(file_path, "w", encoding="utf-8") as file:
             json.dump(data, file, indent=4)
 
-        print("Drone data updated successfully.")
+        logging.info("Drone data updated successfully.")
 
     except FileNotFoundError:
-        print(f"File {file_path} not found.")
+        logging.warning("File %s not found.", file_path)
         return
     except json.JSONDecodeError:
-        print(f"Error decoding JSON from file {file_path}.")
+        logging.warning("Error decoding JSON from file %s.", file_path)
         return
 
 
@@ -149,7 +150,7 @@ def update_flight_settings(
             data: dict[str, Any] = json.load(file)
 
         if "flight_settings" not in data:
-            print("No 'flight_settings' category in JSON.")
+            logging.warning("No 'flight_settings' category in JSON.")
             return
 
         if flight_settings.simple_takeoff is not None:
@@ -164,11 +165,11 @@ def update_flight_settings(
         with open(file_path, "w", encoding="utf-8") as file:
             json.dump(data, file, indent=4)
 
-        print("Flight settings updated successfully.")
+        logging.info("Flight settings updated successfully.")
 
     except FileNotFoundError:
-        print(f"File {file_path} not found.")
+        logging.warning("File %s not found.", file_path)
         return
     except json.JSONDecodeError:
-        print(f"Error decoding JSON from file {file_path}.")
+        logging.warning("Error decoding JSON from file %s.", file_path)
         return
