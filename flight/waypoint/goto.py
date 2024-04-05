@@ -30,10 +30,6 @@ async def move_to(drone: System, latitude: float, longitude: float, altitude: fl
         a float containing the requested longitude to move to
     altitude: float
         a float contatining the requested altitude to go to in meters
-    fast_param: float
-        a float that determines if the drone will take less time checking its precise location
-        before moving on to another waypoint. If its 1, it will move at normal speed,
-        if its less than 1(0.83), it will be faster.
     """
 
     # get current altitude
