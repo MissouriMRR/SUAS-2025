@@ -143,10 +143,11 @@ class FlightManager:
 
         logging.critical("Kill switch activated. Terminating state machine.")
 
-        # await self.drone.system.action.takeoff()
+        # follow me is used here because while the drone is moving to a waypoint
+        # it is in hold mode which is also used to stop the drone, so a brief mode
+        # change needs to happen and follow me also holds the drone still in reference
+        # to the ground station
         await self.drone.system.follow_me.start()
-
-        time.sleep(10)
 
         await self.drone.system.offboard.stop()
 
