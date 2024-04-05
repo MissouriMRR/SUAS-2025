@@ -53,17 +53,14 @@ async def move_to(drone: System, latitude: float, longitude: float, altitude: fl
             drone_long: float = position.longitude_deg
             drone_alt: float = position.relative_altitude_m
 
-            print("HAMMOD HAMOOD")
-            print(
-                calculate_distance(drone_lat, drone_long, drone_alt, latitude, longitude, altitude)
-            )
+            total_distance: float = calculate_distance(drone_lat, drone_long, drone_alt, latitude, longitude, altitude)
             #  accurately checks if location is reached and stops for 15 secs and then moves on.
             if (
-                calculate_distance(drone_lat, drone_long, drone_alt, latitude, longitude, altitude)
+                total_distance
                 < 5
             ):
                 location_reached = True
-                logging.info("arrived")
+                logging.info("Arrived", total_distance, "m away from waypoint")
                 break
 
         # tell machine to sleep to prevent constant polling, preventing battery drain

@@ -1,5 +1,6 @@
 """
-add
+File containing the calculate_distance function responsible
+for calculating how far the drone is from the waypoint
 """
 
 import asyncio
