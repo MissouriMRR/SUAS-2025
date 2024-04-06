@@ -2,7 +2,6 @@
 Takes the contour of an ODLC shape and determine which shape it is
 """ 
 import numpy as np
-import nptyping as npt
 import cv2
 import scipy
 from scipy import signal
@@ -13,36 +12,32 @@ import json
 
 
 # constants
+
 NUM_STEPS: int = 128
 # Represents the number of intervals used when analyzing polar graph of shape
 
-MAX_CHILD_AMT: int = 2
-# The max number of (direct) child contours that a contour can have and be considered
+PROMINENCE: float = 0.05
+# Minimum prominence for a peak to be recognized on a shape contour
 
-RIGHT_ANG_THRESH: float = 5.0
-# When checking if quadrilateral has right angles the max range of angles allowed (ex 85 to 95)
+CROSS_PROMINENCE: float = 0.02
+# Lowered prominence to find all peaks of a cross
 
-SIDE_LEN_EQ_THRESH: float = 0.05
-# when comparing the side lengths of a shape for equality, the max difference allowed
+MIN_SMALLEST_RADIUS_CIRCLE: float = 0.9
+# Minimum allowed smallest radius to be considered a circle
 
-SHAPE_ASPECT_RATIO_RANGE: float = 0.15
-# some shapes are expected to not be oblong (oblong shapes being rectangle, trapezoid, semicircle,
-# etc) this value is the max that the shape can be wider than long (calculated with a rotated,
-# not upright bounding box)
+MIN_DIFF_BETWEEN_SHORT_PEAKS_QUARTER_CIRCLE: float = 0.15
+# Minimum allowed difference between the shortest peaks of a quarter circle
 
-APPROX_CNT_EPSILON: float = 5.0
-# Value used for epsilon parameter for polygon contour approximation in cv2.approxPolyDP()
-# epsilon is the max distance between the approximation's and the original's curves
+MAX_DIFF_BETWEEN_LONG_PEAKS_QUARTER_CIRCLE: float = 0.5 
+# Maximum allowed difference between the longest peaks of a quarter circle
+# Quarter Circle should have 2 long peaks which are very close in length, and one peak which is a bit shorter
 
-QUARTER_CIRCLE_RATIO: float = 0.280
-# 0.280 is ratio of radius to total perimeter of quarter circle = r / (r + r + pi*r/2)
+MAX_SMALLEST_RADIUS_STAR: float = 0.65
+# Maximum allowed smallest radius for a shape to be considered a star
 
-SEMICIRCLE_RATIO: float = 0.389
-# 0.389 is ratio of diameter to total perimeter of semi circle = 2r / (2r + pi*r)
+PERCENT_OF_CROSS_IGNORED_TO_LOWER_PROMINENCE: float = .85
+# The bottom percentage of a shape's polar graph that is removed to safely lower prominece and highlight the cross's slight peaks
 
-CIRCULAR_RATIO_RANGE: float = 0.054
-# The max amount that the calculated ratio in classify_circular() may differ from the exact value
-# NOTE: do not set to above 0.054, this will result in overlap between two ratio ranges
 
 shape_from_peaks = {
     1 : chars.ODLCShape.CIRCLE,
@@ -110,8 +105,7 @@ def condense_polar(polar_array) :
         x[i] = polar_array[i][1]
         y[i] = polar_array[i][0]
 
-
-    # f = RegularGridInterpolator((x), y)
+    # Linear interpolation to normalize all shapes to have the same number of data points
     f = scipy.interpolate.interp1d(x, y, kind='linear', fill_value='extrapolate')
     newx = np.linspace(x.min(), x.max(), num=NUM_STEPS)
     newy = f(newx)
@@ -160,7 +154,7 @@ def Verify_Shape_Choice(mystery_radii_list, shape_choice, sample_ODLC_radii):
     difference = 0.0
     for i in range(NUM_STEPS):
         difference += abs(mystery_radii_list[i] - sample_ODLC_radii[i])
-    return difference < NUM_STEPS / 8 # IMPORTANT -------------------THIS EQUATION IS NOT TESTED AT ALLLLL--------------------
+    return difference < NUM_STEPS / 8 # IMPORTANT -------------------THIS EQUATION IS MINIMALLY TESTED--------------------
         
 def Compare_Based_On_Peaks(mysteryArr) -> chars.ODLCShape | None:  # Returns the name of the most similar ODLC object given an array of Polar Tuples (radius, angle)
         mysteryArr_x, mysteryArr_y = mysteryArr
@@ -169,12 +163,12 @@ def Compare_Based_On_Peaks(mysteryArr) -> chars.ODLCShape | None:  # Returns the
         mysteryArr_y = np.roll(mysteryArr_y, -mystery_min_index) # Rolls all values to put minimum radius at x = 0
 
 
-        peaks = signal.find_peaks(mysteryArr_y, prominence=0.05)[0]
+        peaks = signal.find_peaks(mysteryArr_y, prominence=PROMINENCE)[0]
         num_peaks = len(peaks)
         ODLC_guess: chars.ODLCShape
 
 
-        if(mysteryArr_y[0] > .9): # If the minimum value is greater than .9 (90% of Maximum Radius), then it is a circle
+        if(mysteryArr_y[0] > MIN_SMALLEST_RADIUS_CIRCLE): # If the minimum value is greater than .9 (90% of Maximum Radius), then it is a circle
             ODLC_guess = chars.ODLCShape.CIRCLE
 
         elif num_peaks == 2 or num_peaks == 4 or num_peaks == 8: # If we have a shape able to be uniquely defined by it's number of peaks
@@ -188,7 +182,7 @@ def Compare_Based_On_Peaks(mysteryArr) -> chars.ODLCShape | None:  # Returns the
             peaksVals[1] = mysteryArr_y[peaks[1]]
             peaksVals[2] = mysteryArr_y[peaks[2]]
             peaksVals = np.sort(peaksVals)
-            if peaksVals[2] - peaksVals[1] < .05 and peaksVals[1] - peaksVals[0] > .15: # If there is a small enough difference between 2 greatest peaks,
+            if peaksVals[2] - peaksVals[1] < MAX_DIFF_BETWEEN_LONG_PEAKS_QUARTER_CIRCLE and peaksVals[1] - peaksVals[0] > MIN_DIFF_BETWEEN_SHORT_PEAKS_QUARTER_CIRCLE: # If there is a small enough difference between 2 greatest peaks,
                                                                                         # And large enough difference between 2 smallest peaks, we have
                                                                                         # A quarter cricle
                 ODLC_guess = chars.ODLCShape.QUARTER_CIRCLE
@@ -197,12 +191,14 @@ def Compare_Based_On_Peaks(mysteryArr) -> chars.ODLCShape | None:  # Returns the
             
         elif num_peaks == 5: # Must narrow down from pentagon or star
             min = np.min(mysteryArr_y)
-            if min < .55: # If minimum radius is less than .55 (55% of maximum radius), the we have a star
+            if min < MAX_SMALLEST_RADIUS_STAR: # If minimum radius is less than .65 (65% of maximum radius), the we have a star
                 ODLC_guess = chars.ODLCShape.STAR
             else:
                 ODLC_guess = chars.ODLCShape.PENTAGON
-        elif len(signal.find_peaks([0 if val < .85 else val for val in mysteryArr_y], prominence=0.02)[0]) == 8:
+        elif len(signal.find_peaks([0 if val < PERCENT_OF_CROSS_IGNORED_TO_LOWER_PROMINENCE else val for val in mysteryArr_y], prominence=CROSS_PROMINENCE)[0]) == 8:
             ODLC_guess = chars.ODLCShape.CROSS
+        # This elif states that is the upper 15% of a shape has 8 peaks when prominence is decreased, it is likely a crosss
+        # This was added because many crosses were not showing 2 peaks per "beam" in higher prominence, but rather those peaks were blending into one
         else:
             return None
         # Read the appropriate Array from json file
@@ -215,25 +211,16 @@ def Compare_Based_On_Peaks(mysteryArr) -> chars.ODLCShape | None:  # Returns the
         return ODLC_guess
 
 def classify_shape(
-    contour: consts.Contour,
-    image_dims: tuple[int, int],
+    contour: consts.Contour
 ) -> chars.ODLCShape | None:
     return Compare_Based_On_Peaks(Generate_Polar_Array(contour))
 """
-    Will first determine whether the specified contour is an ODLC shape, then will determine
-    which ODLC shape it is.
+    Will determine if the contour matches any ODLC shape, then verify that choice by comparing to sample
 
     Parameters
     ----------
     contour : consts.Contour
         A contour returned by the contour detection algorithm
-    image_dims : tuple[int, int]
-        The dimensions of the original entire image
-        (only height and width as gotten from image.shape[:2], not the color channels)
-        image_dim_height : int
-            The height dimension of the image
-        image_dim_width : int
-            The width dimension of the image
 
     Returns
     -------
