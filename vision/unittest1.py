@@ -1,3 +1,4 @@
+
 import unittest
 import numpy as np
 from vision.common import constants as consts
@@ -22,13 +23,16 @@ class TestShapeClassification(unittest.TestCase):
           }
       
       for i in range(8):
-          contour_sample = Image_Address_To_Contour("vision/unit_tests/test_images/standard_objects/shape" + str(i + 1) + ".png")
-          image_dims = contour_sample.shape
+          contour_sample = Image_Address_To_Contour("vision/unit_tests/test_images/shape" + str(i + 1) + ".png")
+          image_dims = contour_sample
+          
           shape = classify_shape(contour_sample, image_dims)
 
 
           self.assertEqual(shape, expected_mapping[i])
       
-      
+          
   if __name__ == '__main__':
       unittest.main()
+
+      
