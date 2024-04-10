@@ -13,7 +13,7 @@ from vision.common.bounding_box import BoundingBox
 from vision.common.odlc_characteristics import ODLCColor
 
 from vision.standard_object.odlc_image_processing import preprocess_std_odlc
-from odlc_classify_shape import process_shapes
+from vision.standard_object.odlc_classify_shape import process_shapes
 from vision.standard_object.odlc_text_detection import get_odlc_text
 from vision.standard_object.odlc_colors import find_colors
 
