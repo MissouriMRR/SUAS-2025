@@ -8,7 +8,7 @@ import os
 import gphoto2
 
 
-async def test_capture_image(photo_num: int = 1) -> None:
+async def test_capture_image(photo_num: int = 5) -> None:
     """Test the capture_photo method of the Camera class.
 
     Parameters
@@ -41,28 +41,26 @@ async def test_capture_image(photo_num: int = 1) -> None:
     path: str = f"{os.getcwd()}/images/"
     os.makedirs(path, mode=0o777, exist_ok=True)
 
-    file_path = camera.capture(gphoto2.GP_CAPTURE_IMAGE)
     while image_id <= photo_num:
-        while True:
-            event_type, _event_data = camera.wait_for_event(100)
-            if event_type == gphoto2.GP_EVENT_CAPTURE_COMPLETE:
-                photo_name: str = (
-                    f"{datetime.now().strftime('%Y%m%d')}_{session_id}_{image_id:04d}.jpg"
-                )
+        file_path = camera.capture(gphoto2.GP_CAPTURE_IMAGE)
+        event_type, _event_data = camera.wait_for_event(100)
+        if event_type == gphoto2.GP_EVENT_CAPTURE_COMPLETE:
+            photo_name: str = f"{datetime.now().strftime('%Y%m%d')}_{session_id}_{image_id:04d}.jpg"
 
-                cam_file = gphoto2.check_result(
-                    gphoto2.gp_camera_file_get(
-                        camera,
-                        file_path.folder,
-                        file_path.name,
-                        gphoto2.GP_FILE_TYPE_NORMAL,
-                    )
+            cam_file = gphoto2.check_result(
+                gphoto2.gp_camera_file_get(
+                    camera,
+                    file_path.folder,
+                    file_path.name,
+                    gphoto2.GP_FILE_TYPE_NORMAL,
                 )
-                target_name: str = f"{path}{photo_name}"
-                cam_file.save(target_name)
-                image_id += 1
-                logging.info("Image #%d is being saved to %s", image_id, target_name)
-                continue
+            )
+            target_name: str = f"{path}{photo_name}"
+            cam_file.save(target_name)
+            logging.info("Image #%d is being saved to %s", image_id, target_name)
+            image_id += 1
+            await asyncio.sleep(1)
+            continue
 
 
 if __name__ == "__main__":
