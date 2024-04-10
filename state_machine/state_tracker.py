@@ -159,8 +159,6 @@ def update_flight_settings(
             data["flight_settings"]["title"] = flight_settings.run_title
         if flight_settings.run_description is not None:
             data["flight_settings"]["description"] = flight_settings.run_description
-        if flight_settings.waypoint_count is not None:
-            data["flight_settings"]["waypoint_count"] = flight_settings.waypoint_count
 
         with open(file_path, "w", encoding="utf-8") as file:
             json.dump(data, file, indent=4)

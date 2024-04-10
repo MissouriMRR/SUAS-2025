@@ -161,7 +161,6 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
                         waypoint["lats"][point],
                         waypoint["longs"][point],
                         waypoint["Altitude"][0],
-                        5 / 6,
                     )
 
             with open("flight/data/output.json", encoding="ascii") as output:
