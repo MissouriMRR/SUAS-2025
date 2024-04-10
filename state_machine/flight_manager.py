@@ -161,7 +161,7 @@ class FlightManager:
                 simple_takeoff=last_state_data["flight_settings"]["simple_takeoff"],
                 title=last_state_data["flight_settings"]["title"],
                 description=last_state_data["flight_settings"]["description"],
-                waypoints=last_state_data["flight_settings"]["waypoint_count"],
+                skip_waypoint=last_state_data["flight_settings"]["waypoint"],
                 sim_flag=last_state_data["flight_settings"]["sim_flag"],
                 path_data_path=last_state_data["flight_settings"]["path_data_path"],
             )
