@@ -7,8 +7,7 @@ from vision.common import constants as consts
 from vision.common import odlc_characteristics as chars
 import json
 from typing import List, Tuple, Union
-
-
+from vision.standard_object.odlc_classify_shape import process_shapes
 
 # constants
 
@@ -59,6 +58,7 @@ ODLCShape_To_ODLC_Index = {
 }
 
 def classify_shape(contour: consts.Contour) -> Union[chars.ODLCShape, None]:
+    
 #def classify_shape(contour: consts.Contour) -> chars.ODLCShape | None:
     """
     Will determine if the contour matches any ODLC shape, then verify that choice by comparing to sample
@@ -104,9 +104,19 @@ def compare_based_on_peaks(mysteryArr: Tuple[List[float], List[float]]) -> Union
     num_peaks = len(peaks)
     ODLC_guess: chars.ODLCShape
     """
+
+    """""
     mysteryArr_x, mysteryArr_y = mysteryArr
     mysteryArr_y /= np.max(mysteryArr_y)  # Normalizes radii to all be between 0 and 1
     mystery_min_index = np.argmin(mysteryArr_y)
+    """
+    mysteryArr_x, mysteryArr_y = mysteryArr
+    mysteryArr_y = np.array(mysteryArr_y)  
+    mysteryArr_y /= np.max(mysteryArr_y)
+
+
+      
+
     mysteryArr_y = np.roll(
         mysteryArr_y, -mystery_min_index
     )  # Rolls all values to put minimum radius at x = 0
@@ -118,7 +128,7 @@ def compare_based_on_peaks(mysteryArr: Tuple[List[float], List[float]]) -> Union
     if mysteryArr_y[0] > MIN_SMALLEST_RADIUS_CIRCLE:
          # If the minimum value is greater than .9 (90% of Maximum Radius), then it is a circle
         ODLC_guess = chars.ODLCShape.CIRCLE
-        
+
     elif (
         num_peaks == 2 or num_peaks == 4 or num_peaks == 8
     ):  # If we have a shape able to be uniquely defined by it's number of peaks
@@ -178,8 +188,8 @@ def compare_based_on_peaks(mysteryArr: Tuple[List[float], List[float]]) -> Union
         return None
     return ODLC_guess
 
-
-def generate_polar_array(cnt: consts.Contour) -> chars.ODLCShape | None:
+def generate_polar_array(cnt: consts.Contour) -> Tuple[List[float], List[float]]:
+#def generate_polar_array(cnt: consts.Contour) -> chars.ODLCShape | None:
     """
     Generates 2 arrays storing the x and y coordinates of a new polar array
 
