@@ -8,6 +8,7 @@ import logging
 import json
 
 from flight.camera import Camera
+from flight.waypoint.goto import move_to
 from state_machine.state_tracker import update_state
 from state_machine.states.airdrop import Airdrop
 from state_machine.states.odlc import ODLC
@@ -47,19 +48,10 @@ async def run(self: ODLC) -> State:
         # Syncronized type hint is broken, see https://github.com/python/typeshed/issues/8799
         capture_status: SynchronizedBase[c_bool] = Value(c_bool, False)  # type: ignore
 
-        flight_process = Process(
-            target=flight_odlc_logic,
-            args=(
-                self,
-                capture_status,
-            ),
-        )
         vision_process = Process(target=vision_odlc_logic, args=(capture_status,))
-
-        flight_process.start()
         vision_process.start()
+        await find_odlcs(self, capture_status)
         try:
-            flight_process.join()
             logging.info("Flight process joined")
             vision_process.join()
             logging.info("Vision process joined")
@@ -77,20 +69,6 @@ async def run(self: ODLC) -> State:
         pass
 
 
-def flight_odlc_logic(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> None:
-    """
-    Starts the asyncronous flight logic for the ODLC state.
-
-    Parameters
-    ----------
-    self : ODLC
-        The current instance of the ODLC state.
-    capture_status : SynchronizedBase[c_bool]
-        If pictures are done being taken or not.
-    """
-    asyncio.run(find_odlcs(self, capture_status))
-
-
 async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> None:
     """
     Implements the run method for the ODLC state.
@@ -102,14 +80,16 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
 
     Notes
     -----
-    This method is responsible for initiating the ODLC scanning process of the drone
-    and transitioning it to the Airdrop state.
+    This method is responsible for initiating the ODLC scanning process of the drone.
     """
     try:
         logging.info("ODLC")
 
         # Initialize the camera
-        camera: Camera = Camera()
+        if self.flight_settings.sim_flag is False:
+            camera: Camera | None = Camera()
+        else:
+            camera = None
 
         # These waypoint values are all that are needed to traverse the whole odlc drop location
         # because it is a small rectangle
@@ -166,14 +146,22 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
                     capture_status.value = c_bool(True)  # type: ignore
                     logging.info("Moving to the north west corner")
 
-                await camera.odlc_move_to(
-                    self.drone,
-                    waypoint["lats"][point],
-                    waypoint["longs"][point],
-                    waypoint["Altitude"][0],
-                    5 / 6,
-                    take_photos,
-                )
+                if camera:
+                    await camera.odlc_move_to(
+                        self.drone,
+                        waypoint["lats"][point],
+                        waypoint["longs"][point],
+                        waypoint["Altitude"][0],
+                        5 / 6,
+                        take_photos,
+                    )
+                else:
+                    await move_to(
+                        self.drone.system,
+                        waypoint["lats"][point],
+                        waypoint["longs"][point],
+                        waypoint["Altitude"][0],
+                    )
 
             with open("flight/data/output.json", encoding="ascii") as output:
                 airdrop_dict = json.load(output)
