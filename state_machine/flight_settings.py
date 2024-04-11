@@ -1,7 +1,7 @@
 """Class to contain setters, getters & parameters for current flight"""
+
 from typing import Final
 
-DEFAULT_WAYPOINTS: Final[int] = 5
 DEFAULT_RUN_TITLE: Final[str] = "SUAS Test Flight"
 DEFAULT_RUN_DESCRIPTION: Final[str] = "Test flight for SUAS 2023"
 
@@ -18,8 +18,12 @@ class FlightSettings:
         The name for the current flight operation
     __run_description: str
         A small description for the current flight
-    __waypoint_count: int
-        The number of waypoints to fly for the current flight test
+    __skip_waypoint: bool
+        Whether to skip the waypoint state.
+    __sim_flag: bool
+        A flag representing if the connected drone is a simulation
+    __path_data_path: str
+        The path to the JSON file containing the boundary and waypoint data.
 
     Methods
     -------
@@ -27,10 +31,10 @@ class FlightSettings:
         Returns the status of the takeoff type for the flight
     simple_takeoff(simple_takeoff: bool) -> None
         Sets the parameter for a simple or diagonal takeoff
-    waypoint_count() -> int
-        Returns the number of waypoints to fly for the current flight
-    waypoint_count(count: int) -> None
-        Setter for configuring the number of waypoints to fly for the flight test
+    skip_waypoint() -> bool
+        Returns whether to skip the waypoint state.
+    skip_waypoint(flag: bool) -> None
+        Setter for configuring whether to skip the waypoint state.
     run_title() -> str
         `Returns the flight title
     run_title(new_title: str) -> None
@@ -39,6 +43,14 @@ class FlightSettings:
         Returns the small description for the current flight
     run_description(new_description: str) -> None
         Sets a new description for the new flight
+    sim_flag() -> bool
+        Returns the flag for the simulation
+    sim_flag(sim_flag: bool) -> None
+        Sets the flag for the simulation
+    path_data_path() -> str
+        Return the path to the JSON file containing the boundary and waypoint data.
+    path_data_path(path_data_path: str) -> None
+        Set the path to the JSON file containing the boundary and waypoint data.
     """
 
     def __init__(
@@ -46,14 +58,16 @@ class FlightSettings:
         simple_takeoff: bool = False,
         title: str = DEFAULT_RUN_TITLE,
         description: str = DEFAULT_RUN_DESCRIPTION,
-        waypoints: int = DEFAULT_WAYPOINTS,
+        skip_waypoint: bool = False,
+        sim_flag: bool = False,
+        path_data_path: str = "flight/data/waypoint_data.json",
     ) -> None:
         """
         Default Constructor for flight settings
 
         Parameters
         ----------
-        simple_takeoff : bool = False
+        simple_takeoff : bool, default False
             Sets if flight will use a simple vertical takeoff
         title : str
             The name for the flight execution
@@ -61,11 +75,17 @@ class FlightSettings:
             Sets a descriptive explanation for the current flight execution
         waypoints : int
             The number of waypoints to fly for the flight plan
+        sim_flag : bool, default False
+            A flag representing if the connected drone is a simulation
+        path_data_path : str, default "flight/data/waypoint_data.json"
+            The path to the JSON file containing the boundary and waypoint data.
         """
         self.__simple_takeoff: bool = simple_takeoff
         self.__run_title: str = title
         self.__run_description: str = description
-        self.__waypoint_count: int = waypoints
+        self.__skip_waypoint: bool = skip_waypoint
+        self.__sim_flag: bool = sim_flag
+        self.__path_data_path: str = path_data_path
 
     # ----- Takeoff Settings ----- #
     @property
@@ -94,28 +114,28 @@ class FlightSettings:
 
     # ----- Waypoint Settings ----- #
     @property
-    def waypoint_count(self) -> int:
+    def skip_waypoint(self) -> bool:
         """
-        Gets the number of waypoints as a private member variable
+        Gets the whether to skip the waypoint state as a private member variable.
 
         Returns
         -------
-        waypoint_count : int
-            Current number of waypoints to fly for the mission
+        skip_waypoint : bool
+            Whether to skip the waypoint state.
         """
-        return self.__waypoint_count
+        return self.__skip_waypoint
 
-    @waypoint_count.setter
-    def waypoint_count(self, count: int) -> None:
+    @skip_waypoint.setter
+    def skip_waypoint(self, flag: bool) -> None:
         """
-        Sets the number of waypoints to fly for the flight mission
+        Sets whether to skip the waypoint state.
 
         Parameters
         ----------
-        count : int
-            Total number of waypoints planning to fly for mission
+        flag : bool
+            Whether to skip the waypoint state.
         """
-        self.__waypoint_count = count
+        self.__skip_waypoint = flag
 
     # ----- Flight Initialization Settings ----- #
     @property
@@ -165,3 +185,50 @@ class FlightSettings:
             New description for the current flight
         """
         self.__run_description = new_description
+
+    @property
+    def sim_flag(self) -> bool:
+        """
+        Returns the flag for the simulation
+
+        Returns
+        -------
+        sim_flag : bool
+            Flag for the simulation
+        """
+        return self.__sim_flag
+
+    @sim_flag.setter
+    def sim_flag(self, sim_flag: bool) -> None:
+        """
+        Sets the flag for the simulation
+
+        Parameters
+        ----------
+        sim_flag : bool
+            Flag for the simulation
+        """
+        self.__sim_flag = sim_flag
+
+    @property
+    def path_data_path(self) -> str:
+        """
+        Return the path to the JSON file containing the boundary and waypoint data.
+
+        Returns
+        -------
+        path_data_path : str
+            The path to the JSON file containing the boundary and waypoint data.
+        """
+        return self.__path_data_path
+
+    @path_data_path.setter
+    def path_data_path(self, path_data_path: str) -> None:
+        """
+        Set the path to the JSON file containing the boundary and waypoint data.
+
+        Parameters
+        ----------
+        path_data_path : str
+            The path to the JSON file containing the boundary and waypoint data.
+        """

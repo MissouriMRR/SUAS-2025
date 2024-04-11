@@ -1,6 +1,4 @@
-"""
-Takes the contour of an ODLC shape and determine which shape it is (or None)
-""" 
+"""Takes the contour of an ODLC shape and determine which shape it is in the certain file path"""
 import numpy as np
 import scipy
 from scipy import signal
