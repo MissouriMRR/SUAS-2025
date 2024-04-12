@@ -109,7 +109,7 @@ def compare_based_on_peaks(
     """
 
     """"""
-    
+
     mysteryArr_x, mysteryArr_y = mysteryArr
     mysteryArr_y /= np.max(mysteryArr_y)  # Normalizes radii to all be between 0 and 1
     mystery_min_index = np.argmin(mysteryArr_y)
