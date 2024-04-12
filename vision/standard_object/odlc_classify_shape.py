@@ -10,7 +10,6 @@ import json
 from typing import List, Tuple, Union
 
 
-
 # constants
 
 NUM_STEPS: int = 128
@@ -114,9 +113,6 @@ def compare_based_on_peaks(
     mysteryArr_y /= np.max(mysteryArr_y)  # Normalizes radii to all be between 0 and 1
     mystery_min_index = np.argmin(mysteryArr_y)
 
-
-      
-
     mysteryArr_y = np.roll(
         mysteryArr_y, -mystery_min_index
     )  # Rolls all values to put minimum radius at x = 0
@@ -188,8 +184,9 @@ def compare_based_on_peaks(
         return None
     return ODLC_guess
 
+
 def generate_polar_array(cnt: consts.Contour) -> Tuple[List[float], List[float]]:
-#def generate_polar_array(cnt: consts.Contour) -> chars.ODLCShape | None:
+    # def generate_polar_array(cnt: consts.Contour) -> chars.ODLCShape | None:
     """
     Generates 2 arrays storing the x and y coordinates of a new polar array
 
@@ -359,5 +356,5 @@ def verify_shape_choice(mystery_radii_list: List[float], sample_ODLC_radii: List
     difference = 0.0
     for i in range(NUM_STEPS):
         difference += abs(mystery_radii_list[i] - sample_ODLC_radii[i])
-    return (difference < NUM_STEPS / 8)
+    return difference < NUM_STEPS / 8
     # IMPORTANT -------------------THIS EQUATION IS MINIMALLY TESTED--------------------
