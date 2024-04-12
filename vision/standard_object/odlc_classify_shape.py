@@ -114,7 +114,6 @@ def compare_based_on_peaks(
         ((moments["m10"] / moments["m00"]), (moments["m01"] / moments["m00"])), dtype=np.float64
     )
     """
-    
 
     mysteryArr_y = np.roll(...).tolist()
 
@@ -367,4 +366,3 @@ def verify_shape_choice(mystery_radii_list: List[float], sample_ODLC_radii: List
         difference += abs(mystery_radii_list[i] - sample_ODLC_radii[i])
     return difference < NUM_STEPS / 8
     # IMPORTANT -------------------THIS EQUATION IS MINIMALLY TESTED--------------------
-
