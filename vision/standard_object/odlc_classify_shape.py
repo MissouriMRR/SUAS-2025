@@ -5,6 +5,7 @@ import scipy
 from scipy import signal
 from vision.common import constants as consts
 from vision.common import odlc_characteristics as chars
+
 import json
 from typing import List, Tuple, Union
 
