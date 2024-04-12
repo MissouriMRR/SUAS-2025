@@ -1,4 +1,5 @@
 """Takes the contour of an ODLC shape and determine which shape it is in the certain file path"""
+
 import numpy as np
 import scipy
 from scipy import signal
@@ -7,7 +8,8 @@ from vision.common import odlc_characteristics as chars
 from vision.standard_object.odlc_classify_shape import process_shapes
 import json
 from typing import List, Tuple, Union
-from typing import Type, Dict
+
+
 
 # constants
 
@@ -57,9 +59,8 @@ ODLCShape_To_ODLC_Index = {
     chars.ODLCShape.CROSS: 7,
 }
 
+
 def classify_shape(contour: consts.Contour) -> Union[chars.ODLCShape, None]:
-    
-#def classify_shape(contour: consts.Contour) -> chars.ODLCShape | None:
     """
     Will determine if the contour matches any ODLC shape, then verify that choice by comparing to sample
 
@@ -76,8 +77,11 @@ def classify_shape(contour: consts.Contour) -> Union[chars.ODLCShape, None]:
     """
     return compare_based_on_peaks(generate_polar_array(contour))
 
-def compare_based_on_peaks(mysteryArr: Tuple[List[float], List[float]]) -> Union[chars.ODLCShape, None]:
-#def compare_based_on_peaks(mysteryArr: List[float]) -> chars.ODLCShape | None:
+
+def compare_based_on_peaks(
+    mysteryArr: Tuple[List[float], List[float]]
+) -> Union[chars.ODLCShape, None]:
+    # def compare_based_on_peaks(mysteryArr: List[float]) -> chars.ODLCShape | None:
     """
     Will determine if a polar array matches any ODLC shape, then verify that choice by comparing to sample
 
@@ -122,7 +126,7 @@ def compare_based_on_peaks(mysteryArr: Tuple[List[float], List[float]]) -> Union
     ODLC_guess: chars.ODLCShape
 
     if mysteryArr_y[0] > MIN_SMALLEST_RADIUS_CIRCLE:
-         # If the minimum value is greater than .9 (90% of Maximum Radius), then it is a circle
+        # If the minimum value is greater than .9 (90% of Maximum Radius), then it is a circle
         ODLC_guess = chars.ODLCShape.CIRCLE
 
     elif (
