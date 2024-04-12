@@ -5,7 +5,6 @@ import scipy
 from scipy import signal
 from vision.common import constants as consts
 from vision.common import odlc_characteristics as chars
-from vision.standard_object.odlc_classify_shape import process_shapes
 import json
 from typing import List, Tuple, Union
 
