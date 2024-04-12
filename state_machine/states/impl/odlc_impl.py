@@ -53,7 +53,9 @@ async def run(self: ODLC) -> State:
         # Syncronized type hint is broken, see https://github.com/python/typeshed/issues/8799
         capture_status: SynchronizedBase[c_bool] = Value(c_bool, False)  # type: ignore
 
-        vision_process = Process(target=vision_odlc_logic, args=(capture_status,))
+        vision_process = Process(
+            target=vision_odlc_logic, args=(capture_status, self.flight_settings)
+        )
         vision_process.start()
         await find_odlcs(self, capture_status)
         try:
@@ -91,7 +93,7 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
         logging.info("ODLC")
 
         # Initialize the camera
-        if self.flight_settings.sim_flag is False:
+        if not self.flight_settings.sim_flag:
             camera: Camera | None = Camera()
         else:
             camera = None
@@ -157,7 +159,7 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
                     )
                 else:
                     await move_to(
-                        self.drone,
+                        self.drone.system,
                         gps_data["odlc_waypoints"][point].latitude,
                         gps_data["odlc_waypoints"][point].longitude,
                         gps_data["odlc_altitude"],

@@ -159,4 +159,4 @@ vision_videos/
 *.mkv
 *.flv
 
-state_machine/state.json
+/state_machine/state.json

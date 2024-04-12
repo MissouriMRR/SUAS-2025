@@ -32,7 +32,7 @@ async def move_to(drone: System, latitude: float, longitude: float, altitude: fl
     longitude: float
         a float containing the requested longitude to move to
     altitude: float
-        a float contatining the requested altitude to go to in meters
+        a float containing the requested altitude to go to in meters
     """
 
     # get current altitude
