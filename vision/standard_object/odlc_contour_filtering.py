@@ -214,7 +214,7 @@ def test_spikiness(contour: consts.Contour) -> bool:
     -------
     lacks_spikes : bool
         True unless there is a statistical outlier point that is uniquely far away (or close ig)
-
+    
     References
     ----------
     This function uses a concept called the "Image moment" to calculate the center of a given

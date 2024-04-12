@@ -5,6 +5,7 @@ import scipy
 from scipy import signal
 from vision.common import constants as consts
 from vision.common import odlc_characteristics as chars
+from nptyping import NDArray, Shape, UInt8, IntC, Float32, Bool8
 
 import json
 from typing import List, Tuple, Union
@@ -108,8 +109,15 @@ def compare_based_on_peaks(
     ODLC_guess: chars.ODLCShape
     """
 
-    """"""
-    mysteryArr_y = list(np.roll(mysteryArr_y, -mystery_min_index))
+    """
+     com: NDArray[Shape["2"], Float32] = np.array(
+        ((moments["m10"] / moments["m00"]), (moments["m01"] / moments["m00"])), dtype=np.float64
+    )
+    """
+    
+
+    mysteryArr_y = np.roll(...).tolist()
+
     mysteryArr_x, mysteryArr_y = mysteryArr
     mysteryArr_y /= np.max(mysteryArr_y)  # Normalizes radii to all be between 0 and 1
     mystery_min_index = np.argmin(mysteryArr_y)
@@ -359,3 +367,4 @@ def verify_shape_choice(mystery_radii_list: List[float], sample_ODLC_radii: List
         difference += abs(mystery_radii_list[i] - sample_ODLC_radii[i])
     return difference < NUM_STEPS / 8
     # IMPORTANT -------------------THIS EQUATION IS MINIMALLY TESTED--------------------
+
