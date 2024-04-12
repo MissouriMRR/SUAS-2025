@@ -5,7 +5,7 @@ import scipy
 from scipy import signal
 from vision.common import constants as consts
 from vision.common import odlc_characteristics as chars
-from vision.standard_object.odlc_classify_shape import process_shapes
+#from vision.standard_object.odlc_classify_shape import process_shapes
 import json
 from typing import List, Tuple, Union
 
@@ -108,7 +108,7 @@ def compare_based_on_peaks(
     ODLC_guess: chars.ODLCShape
     """
 
-    """"""
+    """""
     mysteryArr_x, mysteryArr_y = mysteryArr
     mysteryArr_y /= np.max(mysteryArr_y)  # Normalizes radii to all be between 0 and 1
     mystery_min_index = np.argmin(mysteryArr_y)
@@ -116,6 +116,16 @@ def compare_based_on_peaks(
     mysteryArr_y = np.roll(
         mysteryArr_y, -mystery_min_index
     )  # Rolls all values to put minimum radius at x = 0
+    """""
+
+    mysteryArr_x, mysteryArr_y = mysteryArr
+    mysteryArr_y = np.array(mysteryArr_y)  # Convert to numpy array
+    mysteryArr_y /= np.max(mysteryArr_y)  # Normalizes radii to all be between 0 and 1
+    mystery_min_index = np.argmin(mysteryArr_y)
+
+    mysteryArr_y = np.roll(
+        mysteryArr_y, -mystery_min_index
+    )
 
     peaks = signal.find_peaks(mysteryArr_y, prominence=PROMINENCE)[0]
     num_peaks = len(peaks)
