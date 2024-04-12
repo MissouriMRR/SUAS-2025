@@ -115,7 +115,7 @@ def compare_based_on_peaks(
     )
     """
 
-    mysteryArr_y = np.roll(...).tolist()
+    mysteryArr_y = np.roll([...]).tolist()
 
     mysteryArr_x, mysteryArr_y = mysteryArr
     mysteryArr_y /= np.max(mysteryArr_y)  # Normalizes radii to all be between 0 and 1
