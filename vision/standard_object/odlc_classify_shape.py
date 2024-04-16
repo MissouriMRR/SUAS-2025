@@ -115,8 +115,7 @@ def compare_based_on_peaks(
     )
     """
 
-    NDArray(mysteryArr_y = np.roll([...]).tolist())
-
+    NDArray(mysteryArr_y=np.roll([...]).tolist())
 
     mysteryArr_x, mysteryArr_y = mysteryArr
     mysteryArr_y /= np.max(mysteryArr_y)  # Normalizes radii to all be between 0 and 1
@@ -367,6 +366,3 @@ def verify_shape_choice(mystery_radii_list: List[float], sample_ODLC_radii: List
         difference += abs(mystery_radii_list[i] - sample_ODLC_radii[i])
     return difference < NUM_STEPS / 8
     # IMPORTANT -------------------THIS EQUATION IS MINIMALLY TESTED--------------------
-
-
-
