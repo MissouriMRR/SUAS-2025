@@ -1,5 +1,7 @@
 """Functions and Configurations for logging flight & vision data during flight"""
 
+from __future__ import annotations
+
 import logging
 
 from typing import TextIO
@@ -33,8 +35,12 @@ def init_logger(queue: Queue[str]) -> QueueListener:
     queue_listener : QueueListener
         Object to process log messages
     """
+
+    log = open(LOG_FILE, "x")
+    log.close()
+
     file_formatter: Formatter = logging.Formatter(LOG_FORMAT)
-    file: FileHandler = logging.FileHandler(LOG_FILE, "logFile")
+    file: FileHandler = logging.FileHandler(LOG_FILE)
     file.setFormatter(file_formatter)
 
     console_formatter: Formatter = ColoredFormatter(COLOR_LOG_FORMAT)
