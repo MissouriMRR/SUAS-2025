@@ -5,7 +5,7 @@ import scipy
 from scipy import signal
 from vision.common import constants as consts
 from vision.common import odlc_characteristics as chars
-from nptyping import NDArray, Shape, UInt8, IntC, Float32, Bool8
+from nptyping import NDArray, Shape, UInt8, IntC, Float32, Bool8, Float64
 
 import json
 from typing import List, Tuple, Union
@@ -79,8 +79,8 @@ def classify_shape(contour: consts.Contour) -> Union[chars.ODLCShape, None]:
 
 
 def compare_based_on_peaks(
-    mysteryArr: Tuple[List[float], List[float]]
-) -> Union[chars.ODLCShape, None]:
+    mysteryArr: NDArray[Shape["128, 2"], Float64]
+) -> chars.ODLCShape | None:
     # def compare_based_on_peaks(mysteryArr: List[float]) -> chars.ODLCShape | None:
     """
     Will determine if a polar array matches any ODLC shape, then verify that choice by comparing to sample
@@ -96,26 +96,11 @@ def compare_based_on_peaks(
         Will return one of the ODLC shapes defined in vision/common/odlc_characteristics or None
         if the given contour is not an ODLC shape (doesnt match any ODLC)
     """
-    """""
-    mysteryArr_x, mysteryArr_y = mysteryArr
-    mysteryArr_y /= np.max(mysteryArr_y)  # Normalizes radii to all be between 0 and 1
-    mystery_min_index = np.argmin(mysteryArr_y)
-    mysteryArr_y = np.roll(
-        mysteryArr_y, -mystery_min_index
-    )  # Rolls all values to put minimum radius at x = 0
-
-    peaks = signal.find_peaks(mysteryArr_y, prominence=PROMINENCE)[0]
-    num_peaks = len(peaks)
-    ODLC_guess: chars.ODLCShape
-    """
-
-    """
-     com: NDArray[Shape["2"], Float32] = np.array(
-        ((moments["m10"] / moments["m00"]), (moments["m01"] / moments["m00"])), dtype=np.float64
-    )
-    """
-
-    NDArray(mysteryArr_y=np.roll([...]).tolist())
+    
+   
+    mysteryArr_x:NDArray[Shape["128"], Float64]
+    mysteryArr_y:NDArray[Shape["128"], Float64]
+    mystery_min_index:NDArray[Float64]
 
     mysteryArr_x, mysteryArr_y = mysteryArr
     mysteryArr_y /= np.max(mysteryArr_y)  # Normalizes radii to all be between 0 and 1
@@ -124,8 +109,9 @@ def compare_based_on_peaks(
     mysteryArr_y = np.roll(
         mysteryArr_y, -mystery_min_index
     )  # Rolls all values to put minimum radius at x = 0
-
+    peaks:NDArray[Shape["*"], Float64]
     peaks = signal.find_peaks(mysteryArr_y, prominence=PROMINENCE)[0]
+    num_peaks:int
     num_peaks = len(peaks)
     ODLC_guess: chars.ODLCShape
 
@@ -141,7 +127,7 @@ def compare_based_on_peaks(
     elif num_peaks == 3:  # Must narrow down from triangle or quarter circle
         # Sort peaks in by increasing value
         peaks = np.asarray(peaks)
-        peaksVals = [0.0] * 3
+        peaksVals:NDArray[Shape["3"], Float64] = [0.0] * 3
         peaksVals[0] = mysteryArr_y[peaks[0]]
         peaksVals[1] = mysteryArr_y[peaks[1]]
         peaksVals[2] = mysteryArr_y[peaks[2]]
@@ -182,9 +168,12 @@ def compare_based_on_peaks(
     else:
         return None
     # Read the appropriate Array from json file
-    f = open("vision/standard_object/sample_ODLCs.json")
-    sample_shapes = json.load(f)
-    sample_shape = sample_shapes[
+
+    shape_json_address: str = "vision/standard_object/sample_ODLCs.json"
+    with open(shape_json_address) as f:
+        sample_shapes:NDArray[Shape["8, 128"], Float64] = json.load(f)
+    
+    sample_shape: NDArray[Shape["128"], Float64]  = sample_shapes[
         ODLCShape_To_ODLC_Index[ODLC_guess]
     ]  # Finds the correct sample shape's array
     sample_shape = np.asarray(sample_shape)
@@ -209,9 +198,11 @@ def generate_polar_array(cnt: consts.Contour) -> Tuple[List[float], List[float]]
         Will return one of the ODLC shapes defined in vision/common/odlc_characteristics or None
         if the given contour is not an ODLC shape (doesnt match any ODLC)
     """
-    x_avg = 0
-    y_avg = 0
-    numPoints = 0
+    
+    x_avg: Float64 = 0
+    y_avg: Float64 = 0
+    numPoints: int = 0
+    point: NDArray[Shape["2, 2"], IntC, Float64]
     # Finds average x and y value
     for point in cnt:
         y_avg += point[0][0]
@@ -220,23 +211,25 @@ def generate_polar_array(cnt: consts.Contour) -> Tuple[List[float], List[float]]
 
     x_avg = x_avg // numPoints
     y_avg = y_avg // numPoints
-    i = 0
+    i: int = 0
     # Centers the shape at (0,0) to allow for a better scan of the shape in polar coordinates
     for point in cnt:
         point[0][0] -= y_avg
         point[0][1] -= x_avg
         i += 1
 
-    pol_cnt = cartesian_array_to_polar(
+    pol_cnt: NDArray[Shape["*, 2"], Float64] = cartesian_array_to_polar(
         cnt
     )  # Converts array of rectangular coordinates (x,y) to polar (angle, radius)
-    pol_cnt_sorted = merge_sort(pol_cnt)
+    pol_cnt_sorted: NDArray[Shape["*, 2"], Float64] = merge_sort(pol_cnt)
+    x: NDArray[Shape["*"], Float64]
+    y: NDArray[Shape["*"], Float64]
     x, y = condense_polar(pol_cnt_sorted)
 
     return x, y
 
 
-def condense_polar(polar_array: List[float]) -> tuple[List[float], List[float]]:
+def condense_polar(polar_array: NDArray[Shape["*, 2"], Float64]) -> NDArray[Shape["128,2"], Float64]:
     """
     Condenses a polar array to have 'NUM_STEPS' data points for analysis
 
@@ -251,16 +244,15 @@ def condense_polar(polar_array: List[float]) -> tuple[List[float], List[float]]:
 
     """
     # Converting data to a form able to be passed into scipy.interp1d
-    x = np.empty(len(polar_array))
-    y = np.empty(len(polar_array))
+    x:NDArray[Shape["*"]] = np.empty(len(polar_array))
+    y:NDArray[Shape["*"]] = np.empty(len(polar_array))
     for i in range(len(polar_array)):
         x[i] = polar_array[i][1]
         y[i] = polar_array[i][0]
 
     # Linear interpolation to normalize all shapes to have the same number of data points
-    f = scipy.interpolate.interp1d(x, y, kind="linear", fill_value="extrapolate")
-    newx = np.linspace(x.min(), x.max(), num=NUM_STEPS)
-    newy = f(newx)
+    newx: NDArray[Shape["128"], Float64] = np.linspace(x.min(), x.max(), num=NUM_STEPS)
+    newy: NDArray[Shape["128"], Float64]= scipy.interpolate.interp1d(x, y, kind="linear", fill_value="extrapolate")(newx)
     return newx, newy
 
 
@@ -278,17 +270,18 @@ def merge_sort(data: List[float]) -> List[float]:
     results : List[(float, float)]
         Returns the same list that was passed in, but each tuple is sorted by increasing angle
     """
-    data_length = len(data)
+    data_length: int = len(data)
     if data_length < 2:
         return data
 
-    results = list()
-    midpoint = data_length // 2
+    results: NDArray[Shape["*, 2"], Float64] = list()
+    midpoint:int = data_length // 2
 
-    lefts = merge_sort(data[:midpoint])
-    rights = merge_sort(data[midpoint:])
+    lefts: NDArray[Shape["*, 2"], Float64]= merge_sort(data[:midpoint])
+    rights: NDArray[Shape["*, 2"], Float64] = merge_sort(data[midpoint:])
 
-    l = r = 0
+    l : int = 0
+    r : int = 0
     while l < len(lefts) and r < len(rights):
         if lefts[l][1] <= rights[r][1]:
             results.append(lefts[l])
@@ -319,8 +312,8 @@ def cartesian_to_polar(x: float, y: float) -> tuple[float, float]:
     (rho, phi) : (float, float)
         Returns a tuple of the radius and angle of the cartesian point converted to polar coordinates
     """
-    rho = np.sqrt(x**2 + y**2)
-    phi = np.arctan2(y, x)
+    rho: float = np.sqrt(x**2 + y**2)
+    phi: float = np.arctan2(y, x)
     return (rho, phi)
 
 
@@ -338,9 +331,9 @@ def cartesian_array_to_polar(arr: List[float]) -> List[float]:
     shape : chars.ODLCShape | None
         Returns an array of polar coordinates
     """
-    polar = []  # Stores an array of angles and radii as tuples (radius, angle)
+    polar: NDArray[Shape["*, 2"], Float64]  = []  # Stores an array of angles and radii as tuples (radius, angle)
     for i in range(len(arr)):
-        coord = cartesian_to_polar(arr[i][0][1], arr[i][0][0])
+        coord: Tuple[float,float]= cartesian_to_polar(arr[i][0][1], arr[i][0][0])
         polar.append(coord)
     return polar
 
@@ -361,7 +354,7 @@ def verify_shape_choice(mystery_radii_list: List[float], sample_ODLC_radii: List
     shape : bool
         Returns true if the absolute difference of the two radii lists is small enough, false if not
     """
-    difference = 0.0
+    difference: float = 0.0
     for i in range(NUM_STEPS):
         difference += abs(mystery_radii_list[i] - sample_ODLC_radii[i])
     return difference < NUM_STEPS / 8
