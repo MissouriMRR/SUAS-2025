@@ -318,7 +318,9 @@ def cartesian_to_polar(x: float, y: float) -> tuple[float, float]:
     return (rho, phi)
 
 
-def cartesian_array_to_polar(arr: NDArray[Shape["*,2,2"], Float64]) -> NDArray[Shape["*,2,"], Float64]:
+def cartesian_array_to_polar(
+    arr: NDArray[Shape["*,2,2"], Float64]
+) -> NDArray[Shape["*,2,"], Float64]:
     """
     Converts an array of rectangular (cartesian) coordinates to an array of polar coordinates
 
@@ -333,7 +335,7 @@ def cartesian_array_to_polar(arr: NDArray[Shape["*,2,2"], Float64]) -> NDArray[S
         Returns an array of polar coordinates
     """
     polar: NDArray[Shape["*, 2"], Float64] = []
-      # Stores an array of angles and radii as tuples (radius, angle)
+    # Stores an array of angles and radii as tuples (radius, angle)
     for i in range(len(arr)):
         coord: Tuple[float, float] = cartesian_to_polar(arr[i][0][1], arr[i][0][0])
         polar.append(coord)
