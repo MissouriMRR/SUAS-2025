@@ -36,7 +36,7 @@ def find_standard_objects(
     ----------
     original_image: Image
         The image to find shapes in
-    camera_parameters: CameraParameters  
+    camera_parameters: CameraParameters
         The details of how and where the photo was taken
     image_path: str
         The path for the image the bounding box is from
