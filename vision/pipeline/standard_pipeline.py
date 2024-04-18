@@ -13,8 +13,9 @@ from vision.common.bounding_box import BoundingBox
 from vision.common.odlc_characteristics import ODLCColor
 
 from vision.standard_object.odlc_image_processing import preprocess_std_odlc
-from vision.standard_object.odlc_classify_shape import process_shapes
 from vision.standard_object.odlc_text_detection import get_odlc_text
+from vision.standard_object.odlc_classify_shape import process_shapes
+
 from vision.standard_object.odlc_colors import find_colors
 
 import vision.pipeline.pipeline_utils as pipe_utils
@@ -35,7 +36,7 @@ def find_standard_objects(
     ----------
     original_image: Image
         The image to find shapes in
-    camera_parameters: CameraParameters
+    camera_parameters: CameraParameters  
         The details of how and where the photo was taken
     image_path: str
         The path for the image the bounding box is from
