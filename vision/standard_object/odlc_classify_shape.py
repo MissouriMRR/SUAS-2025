@@ -318,7 +318,7 @@ def cartesian_to_polar(x: float, y: float) -> tuple[float, float]:
     return (rho, phi)
 
 
-def cartesian_array_to_polar(arr: consts.Contour, Float64) -> List[Tuple[float,float]]:
+def cartesian_array_to_polar(arr: consts.Contour, Float64) -> List[Tuple[float, float]]:
     """
     Converts an array of rectangular (cartesian) coordinates to an array of polar coordinates
 
