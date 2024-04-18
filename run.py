@@ -9,6 +9,7 @@ If running for competition, make sure that the following is set:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from logging.handlers import QueueListener
 import sys
@@ -30,6 +31,6 @@ if __name__ == "__main__":
         flight_manager: FlightManager = FlightManager()
         if "-s" in sys.argv:
             SIM_FLAG = True
-        flight_manager.start_manager(SIM_FLAG)
+        asyncio.run(flight_manager.run_manager(SIM_FLAG))
     finally:
         logging.info("Done!")

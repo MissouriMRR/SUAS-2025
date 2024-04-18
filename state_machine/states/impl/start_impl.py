@@ -1,6 +1,9 @@
 """Implements the behavior of the Start state."""
+
 import asyncio
 import logging
+
+from state_machine.state_tracker import update_state
 
 from state_machine.states.start import Start
 from state_machine.states.state import State
@@ -27,6 +30,7 @@ async def run(self: Start) -> State:
 
     """
     try:
+        update_state("Start")
         logging.info("Start state running")
         await self.drone.connect_drone()
 
