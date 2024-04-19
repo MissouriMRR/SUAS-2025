@@ -69,13 +69,12 @@ def find_standard_objects(
     return found_odlcs
 
 
-
 def process_shapes(
     contours: list[consts.Contour], hierarchy: consts.Hierarchy, image_dims: tuple[int, int]
 ) -> list[bbox.BoundingBox]:
     """
     Takes all of the contours of an image and will return BoundingBox list w/ shape attributes
-    
+
     Parameters
     ----------
     contours : list[consts.Contour]
@@ -98,14 +97,6 @@ def process_shapes(
         contour at same index in list and with an attribute that is {"shape": chars.ODLCShape}
         with the identified shape or {"shape": None} if the contour does not match any.
     """
-    
-
-
-
-
-
-
-
 
 
 def iterate_find_contours(original_image: consts.Image) -> ContourHeirarchyList:
