@@ -8,6 +8,8 @@ from vision.common import odlc_characteristics as chars
 from nptyping import NDArray, Shape, UInt8, IntC, Float32, Bool8, Float64
 from vision.common.bounding_box import BoundingBox as bbox
 from vision.common.bounding_box import tlwh_to_vertices as getVertices
+from vision.common import ObjectType 
+
 import json
 from typing import List, Tuple, Union
 
