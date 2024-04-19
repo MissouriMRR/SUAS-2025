@@ -6,7 +6,8 @@ from scipy import signal
 from vision.common import constants as consts
 from vision.common import odlc_characteristics as chars
 from nptyping import NDArray, Shape, UInt8, IntC, Float32, Bool8, Float64
-
+from vision.common.bounding_box import BoundingBox as bbox
+from vision.common.bounding_box import tlwh_to_vertices as getVertices
 import json
 from typing import List, Tuple, Union
 
@@ -59,6 +60,69 @@ ODLCShape_To_ODLC_Index = {
     chars.ODLCShape.CROSS: 7,
 }
 
+
+def process_shapes(
+    contours: list[consts.Contour], hierarchy: consts.Hierarchy, image_dims: tuple[int, int]
+) -> list[bbox.BoundingBox]:
+    
+    """
+    Takes all of the contours of an image and will return BoundingBox list w/ shape attributes
+    
+    Parameters
+    ----------
+    contours : list[consts.Contour]
+        List of all contours from the image (from cv2.findContours())
+        NOTE: cv2.findContours() returns as a tuple, so convert it to list w/ list(the_tuple)
+    hierarchy : consts.Hierarchy
+        The contour hierarchy information returned from cv2.findContours()
+        (The 2nd returned value)
+    image_dims : tuple[int, int]
+        The dimensions of the image the contours are from.
+        y_dim : int
+            Image height.
+        x_dim : int
+            Image width.
+
+    Returns
+    -------
+    bounding_boxes : list[bbox.BoundingBox]
+        A list of BoundingBox objects that are the upright bounding box arround each corresponding
+        contour at same index in list and with an attribute that is {"shape": chars.ODLCShape}
+        with the identified shape or {"shape": None} if the contour does not match any.
+    """
+    bbox_list: List[bbox] 
+    for contour in contours:        
+        Shape_Type:chars.ODLCShape = classify_shape(contour)
+
+        if not Shape_Type == None:
+           # sorted_points = [sorted([point for point in sorted_points if point[0] == x], key=lambda y: y[1]) for x, _ in sorted_points]
+            min_y:int = contour[0][0][0]
+            max_y:int = contour[0][0][0]
+            min_x:int = contour[0][0][1]
+            max_x:int = contour[0][0][1]
+            vertices: consts.Corners
+
+
+
+            for list in contour:
+                point:Tuple[int,int] = list[0]
+                y, x = list
+                if y > max_y:
+                    max_y = y
+                if y < min_y:
+                    min_y = y
+                if x > max_x:
+                    max_x = x
+                if x < min_x:
+                    min_x = x
+            height: int = max_y - min_y 
+            width: int = max_x - min_x
+            vertices = getVertices(min_x, max_y, width, height)
+
+        bounding_box: bbox
+        bbox.__init__(bounding_box, vertices, "std_object", None)
+        bbox_list.append(bounding_box)
+    return bbox_list
 
 def classify_shape(contour: consts.Contour) -> Union[chars.ODLCShape, None]:
     """

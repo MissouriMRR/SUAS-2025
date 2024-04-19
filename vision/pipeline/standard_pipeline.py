@@ -11,11 +11,11 @@ import vision.common.constants as consts
 from vision.competition_inputs.bottle_reader import BottleData
 from vision.common.bounding_box import BoundingBox
 from vision.common.odlc_characteristics import ODLCColor
-
+from vision.common.bounding_box import BoundingBox
 from vision.standard_object.odlc_image_processing import preprocess_std_odlc
 from vision.standard_object.odlc_text_detection import get_odlc_text
 from vision.standard_object.odlc_classify_shape import process_shapes
-
+from vision.common import bounding_box as bbox
 from vision.standard_object.odlc_colors import find_colors
 
 import vision.pipeline.pipeline_utils as pipe_utils
@@ -67,6 +67,45 @@ def find_standard_objects(
                 found_odlcs.append(shape)
 
     return found_odlcs
+
+
+
+def process_shapes(
+    contours: list[consts.Contour], hierarchy: consts.Hierarchy, image_dims: tuple[int, int]
+) -> list[bbox.BoundingBox]:
+    """
+    Takes all of the contours of an image and will return BoundingBox list w/ shape attributes
+    
+    Parameters
+    ----------
+    contours : list[consts.Contour]
+        List of all contours from the image (from cv2.findContours())
+        NOTE: cv2.findContours() returns as a tuple, so convert it to list w/ list(the_tuple)
+    hierarchy : consts.Hierarchy
+        The contour hierarchy information returned from cv2.findContours()
+        (The 2nd returned value)
+    image_dims : tuple[int, int]
+        The dimensions of the image the contours are from.
+        y_dim : int
+            Image height.
+        x_dim : int
+            Image width.
+
+    Returns
+    -------
+    bounding_boxes : list[bbox.BoundingBox]
+        A list of BoundingBox objects that are the upright bounding box arround each corresponding
+        contour at same index in list and with an attribute that is {"shape": chars.ODLCShape}
+        with the identified shape or {"shape": None} if the contour does not match any.
+    """
+    
+
+
+
+
+
+
+
 
 
 def iterate_find_contours(original_image: consts.Image) -> ContourHeirarchyList:
