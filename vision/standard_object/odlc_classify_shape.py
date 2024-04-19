@@ -27,7 +27,6 @@ CROSS_PROMINENCE: float = 0.02
 
 MIN_SMALLEST_RADIUS_CIRCLE: float = 0.9
 # Minimum allowed smallest radius to be considered a circle
-
 MIN_DIFF_BETWEEN_SHORT_PEAKS_QUARTER_CIRCLE: float = 0.15
 # Minimum allowed difference between the shortest peaks of a quarter circle
 
