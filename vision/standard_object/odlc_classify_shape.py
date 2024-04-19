@@ -8,7 +8,7 @@ from vision.common import odlc_characteristics as chars
 from nptyping import NDArray, Shape, UInt8, IntC, Float32, Bool8, Float64
 from vision.common.bounding_box import BoundingBox as bbox
 from vision.common.bounding_box import tlwh_to_vertices as getVertices
-from vision.common import ObjectType 
+from vision.common.bounding_box import ObjectType 
 
 import json
 from typing import List, Tuple, Union
@@ -64,7 +64,7 @@ ODLCShape_To_ODLC_Index = {
 
 def process_shapes(
     contours: list[consts.Contour], hierarchy: consts.Hierarchy, image_dims: tuple[int, int]
-) -> list[bbox.BoundingBox]:
+) -> list[bbox]:
     """
     Takes all of the contours of an image and will return BoundingBox list w/ shape attributes
 
@@ -92,7 +92,7 @@ def process_shapes(
     """
     bbox_list: List[bbox]
     for contour in contours:
-        Shape_Type: chars.ODLCShape = classify_shape(contour)
+        Shape_Type: chars.ODLCShape | None = classify_shape(contour)
 
         if not Shape_Type == None:
             # sorted_points = [sorted([point for point in sorted_points if point[0] == x], key=lambda y: y[1]) for x, _ in sorted_points]
@@ -118,7 +118,7 @@ def process_shapes(
             vertices = getVertices(min_x, max_y, width, height)
 
         bounding_box: bbox
-        bbox.__init__(bounding_box, vertices, "std_object", None)
+        bbox.__init__(bounding_box, vertices, ObjectType.STD_OBJECT, None)
         bbox_list.append(bounding_box)
     return bbox_list
 
