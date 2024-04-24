@@ -40,7 +40,7 @@ MAX_SMALLEST_RADIUS_STAR: float = 0.65
 PERCENT_OF_CROSS_IGNORED_TO_LOWER_PROMINENCE: float = 0.85
 
 # The maximum allowed average difference between points in compared shape to be considered the same type
-FRACTIONAL_DIFF_BTWN_PREDICTED_AND_SAMPLE: float = 1/8
+FRACTIONAL_DIFF_BTWN_PREDICTED_AND_SAMPLE: float = 1 / 8
 
 
 # Keys are the number of peaks, targets are the cooresponding shape
@@ -355,8 +355,8 @@ def cartesian_array_to_polar(
     shape : chars.ODLCShape | None
         Returns an array of polar coordinates
     """
-    cartesian_array_x: NDArray[Shape["*, 2"], Float64] = cartesian_array[:,0,1]
-    cartesian_array_y: NDArray[Shape["*, 2"], Float64] = cartesian_array[:,0,0]
+    cartesian_array_x: NDArray[Shape["*, 2"], Float64] = cartesian_array[:, 0, 1]
+    cartesian_array_y: NDArray[Shape["*, 2"], Float64] = cartesian_array[:, 0, 0]
     polar_array = cartesian_to_polar(cartesian_array_x, cartesian_array_y)
     polar_array = np.swapaxes(polar_array, 0, 1)
     # Stores an array of angles and radii as tuples (radius, angle)
