@@ -5,39 +5,42 @@ import scipy
 from scipy import signal
 from vision.common import constants as consts
 from vision.common import odlc_characteristics as chars
-from nptyping import NDArray, Shape, UInt8, IntC, Float32, Bool8, Float64
+from nptyping import NDArray, Shape, IntC, Float64
 from vision.common.bounding_box import BoundingBox as bbox
-from vision.common.bounding_box import tlwh_to_vertices as getVertices
+from vision.common.bounding_box import tlwh_to_vertices
 from vision.common.bounding_box import ObjectType
 import json
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 
 # constants
 
-NUM_STEPS: int = 128
 # Represents the number of intervals used when analyzing polar graph of shape
+NUM_STEPS: int = 128
 
-PROMINENCE: float = 0.05
 # Minimum prominence for a peak to be recognized on a shape contour
+PROMINENCE: float = 0.05
 
-CROSS_PROMINENCE: float = 0.02
 # Lowered prominence to find all peaks of a cross
+CROSS_PROMINENCE: float = 0.02
 
-MIN_SMALLEST_RADIUS_CIRCLE: float = 0.9
 # Minimum allowed smallest radius to be considered a circle
-MIN_DIFF_BETWEEN_SHORT_PEAKS_QUARTER_CIRCLE: float = 0.15
+MIN_SMALLEST_RADIUS_CIRCLE: float = 0.9
 # Minimum allowed difference between the shortest peaks of a quarter circle
+MIN_DIFF_BETWEEN_SHORT_PEAKS_QUARTER_CIRCLE: float = 0.15
 
-MAX_DIFF_BETWEEN_LONG_PEAKS_QUARTER_CIRCLE: float = 0.5
 # Maximum allowed difference between the longest peaks of a quarter circle
 # Quarter Circle should have 2 long peaks which are very close in length, and one peak which is a bit shorter
+MAX_DIFF_BETWEEN_LONG_PEAKS_QUARTER_CIRCLE: float = 0.5
 
-MAX_SMALLEST_RADIUS_STAR: float = 0.65
 # Maximum allowed smallest radius for a shape to be considered a star
+MAX_SMALLEST_RADIUS_STAR: float = 0.65
 
-PERCENT_OF_CROSS_IGNORED_TO_LOWER_PROMINENCE: float = 0.85
 # The bottom percentage of a shape's polar graph that is removed to safely lower prominece and highlight the cross's slight peaks
+PERCENT_OF_CROSS_IGNORED_TO_LOWER_PROMINENCE: float = 0.85
+
+# The maximum allowed average difference between points in compared shape to be considered the same type
+FRACTIONAL_DIFF_BTWN_PREDICTED_AND_SAMPLE: float = 1/8
 
 
 # Keys are the number of peaks, targets are the cooresponding shape
@@ -94,27 +97,23 @@ def process_shapes(
         Shape_Type: chars.ODLCShape | None = classify_shape(contour)
 
         if not Shape_Type == None:
-            # sorted_points = [sorted([point for point in sorted_points if point[0] == x], key=lambda y: y[1]) for x, _ in sorted_points]
             min_y: int = contour[0][0][0]
             max_y: int = contour[0][0][0]
             min_x: int = contour[0][0][1]
             max_x: int = contour[0][0][1]
             vertices: consts.Corners
 
-            for list in contour:
-                point: Tuple[int, int] = list[0]
-                y, x = list
-                if y > max_y:
-                    max_y = y
-                if y < min_y:
-                    min_y = y
-                if x > max_x:
-                    max_x = x
-                if x < min_x:
-                    min_x = x
+            list_of_points: NDArray[Shape["2,2"], IntC]
+            for list_of_points in contour:
+                point: Tuple[int, int] = list_of_points[0]
+                y, x = point
+                max_y = max(y, max_y)
+                min_y = min(y, min_y)
+                max_x = max(x, max_x)
+                min_x = min(y, min_y)
             height: int = max_y - min_y
             width: int = max_x - min_x
-            vertices = getVertices(min_x, max_y, width, height)
+            vertices = tlwh_to_vertices(min_x, max_y, width, height)
 
         bounding_box: bbox
         bbox.__init__(bounding_box, vertices, ObjectType.STD_OBJECT, None)
@@ -122,7 +121,7 @@ def process_shapes(
     return bbox_list
 
 
-def classify_shape(contour: consts.Contour) -> Union[chars.ODLCShape, None]:
+def classify_shape(contour: consts.Contour) -> chars.ODLCShape | None:
     """
     Will determine if the contour matches any ODLC shape, then verify that choice by comparing to sample
 
@@ -280,7 +279,8 @@ def generate_polar_array(cnt: consts.Contour) -> Tuple[List[float], List[float]]
     pol_cnt: NDArray[Shape["*, 2"], Float64] = cartesian_array_to_polar(
         cnt
     )  # Converts array of rectangular coordinates (x,y) to polar (angle, radius)
-    pol_cnt_sorted: NDArray[Shape["*, 2"], Float64] = merge_sort(pol_cnt)
+    polar_sorted_indices = np.argsort(pol_cnt[:, 1])
+    pol_cnt_sorted = pol_cnt[polar_sorted_indices]
     x: NDArray[Shape["*"], Float64]
     y: NDArray[Shape["*"], Float64]
     x, y = condense_polar(pol_cnt_sorted)
@@ -319,48 +319,6 @@ def condense_polar(
     return newx, newy
 
 
-def merge_sort(data: List[float]) -> List[float]:
-    """
-    Basic implementation of merge sort algorithm, slightly edited to fit our array structure of tuples (sorted based on increasing angle)
-
-    Parameters
-    ----------
-    data : List[float]
-        An array of float tuples storing (radius, angle)
-
-    Returns
-    -------
-    results : List[(float, float)]
-        Returns the same list that was passed in, but each tuple is sorted by increasing angle
-    """
-    data_length: int = len(data)
-    if data_length < 2:
-        return data
-
-    results: NDArray[Shape["*, 2"], Float64] = list()
-    midpoint: int = data_length // 2
-
-    lefts: NDArray[Shape["*, 2"], Float64] = merge_sort(data[:midpoint])
-    rights: NDArray[Shape["*, 2"], Float64] = merge_sort(data[midpoint:])
-
-    l: int = 0
-    r: int = 0
-    while l < len(lefts) and r < len(rights):
-        if lefts[l][1] <= rights[r][1]:
-            results.append(lefts[l])
-            l += 1
-        else:
-            results.append(rights[r])
-            r += 1
-
-    if l < len(lefts):
-        results += lefts[l:]
-    elif r < len(rights):
-        results += rights[r:]
-
-    return results
-
-
 def cartesian_to_polar(x: float, y: float) -> tuple[float, float]:
     """
     Converts a rectangular (cartesian) coordinate to polar
@@ -377,12 +335,13 @@ def cartesian_to_polar(x: float, y: float) -> tuple[float, float]:
     """
     rho: float = np.sqrt(x**2 + y**2)
     phi: float = np.arctan2(y, x)
-    return (rho, phi)
+    polar_point: Tuple[float, float] = (rho, phi)
+    return polar_point
 
 
 def cartesian_array_to_polar(
-    arr: NDArray[Shape["*,2,2"], Float64]
-) -> NDArray[Shape["*,2,"], Float64]:
+    cartesian_array: NDArray[Shape["*,2,2"], Float64]
+) -> NDArray[Shape["*,2"], Float64]:
     """
     Converts an array of rectangular (cartesian) coordinates to an array of polar coordinates
 
@@ -396,12 +355,15 @@ def cartesian_array_to_polar(
     shape : chars.ODLCShape | None
         Returns an array of polar coordinates
     """
-    polar: NDArray[Shape["*, 2"], Float64] = []
+    cartesian_array_x: NDArray[Shape["*, 2"], Float64] = cartesian_array[:,0,1]
+    cartesian_array_y: NDArray[Shape["*, 2"], Float64] = cartesian_array[:,0,0]
+    polar_array = cartesian_to_polar(cartesian_array_x, cartesian_array_y)
+    polar_array = np.swapaxes(polar_array, 0, 1)
     # Stores an array of angles and radii as tuples (radius, angle)
-    for i in range(len(arr)):
-        coord: Tuple[float, float] = cartesian_to_polar(arr[i][0][1], arr[i][0][0])
-        polar.append(coord)
-    return polar
+    # for i in range(len(cartesian_array)):
+    #     coord: Tuple[float, float] = cartesian_to_polar(cartesian_array[i][0][1], cartesian_array[i][0][0])
+    #     polar.append(coord)
+    return polar_array
 
 
 def verify_shape_choice(mystery_radii_list: List[float], sample_ODLC_radii: List[float]) -> bool:
@@ -420,8 +382,5 @@ def verify_shape_choice(mystery_radii_list: List[float], sample_ODLC_radii: List
     shape : bool
         Returns true if the absolute difference of the two radii lists is small enough, false if not
     """
-    difference: float = 0.0
-    for i in range(NUM_STEPS):
-        difference += abs(mystery_radii_list[i] - sample_ODLC_radii[i])
-    return difference < NUM_STEPS / 8
-    # IMPORTANT -------------------THIS EQUATION IS MINIMALLY TESTED--------------------
+    difference: float = np.sum(np.abs(mystery_radii_list - sample_ODLC_radii))
+    return difference < NUM_STEPS * FRACTIONAL_DIFF_BTWN_PREDICTED_AND_SAMPLE
