@@ -6,6 +6,7 @@ import logging
 import json
 from multiprocessing import Process, Value
 from multiprocessing.sharedctypes import SynchronizedBase
+from pathlib import Path
 import time
 
 from flight.camera import Camera
@@ -207,22 +208,20 @@ def vision_odlc_logic(
     and transitioning it to the Airdrop state.
     """
     try:
+        camera_data_filename: str = "flight/data/camera.json"
+
         pipeline = (
             emg_integration_pipeline
             if flight_settings.standard_object_count == 0
             else flyover_pipeline
         )
 
-        while True:
-            try:
-                with open("flight/data/camera.json", "r", encoding="utf-8") as file:
-                    file.close()  # Use the file variable so pylint doesn't complain
+        # Wait until camera.json exists
+        while not Path(camera_data_filename).is_file():
+            logging.info("Waiting for %s to exist", camera_data_filename)
+            time.sleep(1.0)
 
-                pipeline("flight/data/camera.json", capture_status, "flight/data/output.json")
-                break
-            except FileNotFoundError as ex:
-                logging.info("Waiting for %s to exist", ex.filename)
-                time.sleep(1.0)  # camera.json might not exist yet
+        pipeline("flight/data/camera.json", capture_status, "flight/data/output.json")
     except asyncio.CancelledError as ex:
         logging.error("ODLC state canceled")
         raise ex
