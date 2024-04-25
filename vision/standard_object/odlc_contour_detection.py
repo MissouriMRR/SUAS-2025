@@ -1,8 +1,5 @@
-# ELI'S CODE IT'S VERY COOL YIPPEE
-
 import cv2
 import numpy as np
-import time as t
 
 def fetchShapeContours(filename:str, draw_contours:bool=False, resulting_file_name:str="") -> list[np.ndarray]:
     """
@@ -61,6 +58,7 @@ def fetchShapeContours(filename:str, draw_contours:bool=False, resulting_file_na
     contours, _ = cv2.findContours(white_thresh+black_thresh+saturation_thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     all_contours:list[np.ndarray] = []
+    # iterates through each contour
     for a in contours:
         x,y,w,h = cv2.boundingRect(a) # gets rectangle bounding entire contour
         area = float(cv2.contourArea(a))
@@ -78,6 +76,7 @@ def fetchShapeContours(filename:str, draw_contours:bool=False, resulting_file_na
             cv2.drawContours(img, [a], 0, (0,0,255), 2)
         cv2.imwrite(resulting_file_name, img)
 
+    # returns a filtered list of contours
     return all_contours
 
 """
