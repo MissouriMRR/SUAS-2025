@@ -22,10 +22,10 @@ def fetchShapeContours(filename:str, draw_contours:bool=False, resulting_file_na
         contour : numpy.ndarray
             an array of all points that make up the contour
     """
-    
+
     img = cv2.imread(filename)
     new_img = cv2.cvtColor(img, cv2.COLOR_RGB2HLS) # converts image to HLS color format
-    new_img = cv2.GaussianBlur(new_img, (9,9), sigmaX=0, sigmaY=0) # blurs HLS image
+    new_img = cv2.GaussianBlur(new_img, (5,5), sigmaX=0, sigmaY=0) # blurs HLS image
 
     img_brightness:np.ndarray
     img_saturation:np.ndarray
@@ -57,7 +57,7 @@ def fetchShapeContours(filename:str, draw_contours:bool=False, resulting_file_na
     contours:np.ndarray
 
     # finds the contour outlines of the combined thresholds
-    contours, _ = cv2.findContours(white_thresh+black_thresh+saturation_thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours((white_thresh+black_thresh+saturation_thresh), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     all_contours:list[np.ndarray] = []
     # iterates through each contour
