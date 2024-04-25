@@ -33,7 +33,7 @@ def fetchShapeContours(filename:str, draw_contours:bool=False, resulting_file_na
     img_brightness = np.array(new_img[:,:,1]) # reads lightness of image as 2D array
     img_saturation = np.array(new_img[:,:,2]) # reads saturation of image as 2D array
 
-    # slightly mixes blurred and unblurred images of same type, prioritizing blurred images
+    # slightly blends blurred and unblurred images of same type, prioritizing blurred images
     img_brightness = cv2.addWeighted(new_img[:,:,1], 0.3, img_brightness, 0.7, 0)
     img_saturation = cv2.addWeighted(new_img[:,:,2], 0.3, img_saturation, 0.7, 0)
 
@@ -60,7 +60,6 @@ def fetchShapeContours(filename:str, draw_contours:bool=False, resulting_file_na
     contours, _ = cv2.findContours((white_thresh+black_thresh+saturation_thresh), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
     all_contours:list[np.ndarray] = []
-    # iterates through each contour
     for a in contours:
         # gets rectangle bounding entire contour
         x,y,w,h = cv2.boundingRect(a) 
@@ -74,7 +73,7 @@ def fetchShapeContours(filename:str, draw_contours:bool=False, resulting_file_na
         solidity = area / (cv2.contourArea(cv2.convexHull(a))) 
         
         # saves the contour if the area is a reasonable size, reasonably close to a square, 
-        # is not extremely small compared to its bounding box, and does not have extremely rough edges.
+        # is not extremely small compared to its bounding box, and does not have very rough edges.
         if (10000 >= cv2.contourArea(a) >= 300) and (aspect_ratio <= 3) and (proportional_area >= 0.4) and (solidity >= 0.75) :
             all_contours.append(a)
 
