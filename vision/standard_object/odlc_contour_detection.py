@@ -22,6 +22,7 @@ def fetchShapeContours(filename:str, draw_contours:bool=False, resulting_file_na
         contour : numpy.ndarray
             an array of all points that make up the contour
     """
+    
     img = cv2.imread(filename)
     new_img = cv2.cvtColor(img, cv2.COLOR_RGB2HLS) # converts image to HLS color format
     new_img = cv2.GaussianBlur(new_img, (9,9), sigmaX=0, sigmaY=0) # blurs HLS image
@@ -42,7 +43,8 @@ def fetchShapeContours(filename:str, draw_contours:bool=False, resulting_file_na
     black_thresh:np.ndarray
     saturation_thresh:np.ndarray
 
-    # gets all values with a brightness greater than 195, less than 60, and with a saturation of greater than 50 (or 125 if the image is excessively dark)
+    # gets all values with a brightness greater than 195, less than 60, 
+    # and with a saturation of greater than 50 (or 125 if the image is excessively dark)
     _, white_thresh = cv2.threshold(img_brightness, 195, 255, cv2.THRESH_BINARY)
     _, black_thresh = cv2.threshold(img_brightness, 60, 255, cv2.THRESH_BINARY_INV)
     _, saturation_thresh = cv2.threshold(img_saturation, (50 if avg_brt > 60 else 125), 255, cv2.THRESH_BINARY)
@@ -60,13 +62,19 @@ def fetchShapeContours(filename:str, draw_contours:bool=False, resulting_file_na
     all_contours:list[np.ndarray] = []
     # iterates through each contour
     for a in contours:
-        x,y,w,h = cv2.boundingRect(a) # gets rectangle bounding entire contour
+        # gets rectangle bounding entire contour
+        x,y,w,h = cv2.boundingRect(a) 
         area = float(cv2.contourArea(a))
-        proportional_area = area/(w*h) # calculates area inside contour in proportion to the area of the bounding rectangle
+
+        # calculates area inside contour in proportion to the area of the bounding rectangle
+        proportional_area = area/(w*h) 
         aspect_ratio = max(float(w)/h,float(h)/w)
-        solidity = area / (cv2.contourArea(cv2.convexHull(a))) # calculates solidity/rigidity of shape (shapes with rougher sides have lower solidity)
+
+        # calculates solidity/rigidity of shape (shapes with rougher sides have lower solidity)
+        solidity = area / (cv2.contourArea(cv2.convexHull(a))) 
         
-        # saves the contour if the area is a reasonable size, reasonably close to a square, is not extremely small compared to its bounding box, and does not have extremely rough edges.
+        # saves the contour if the area is a reasonable size, reasonably close to a square, 
+        # is not extremely small compared to its bounding box, and does not have extremely rough edges.
         if (10000 >= cv2.contourArea(a) >= 300) and (aspect_ratio <= 3) and (proportional_area >= 0.4) and (solidity >= 0.75) :
             all_contours.append(a)
 
