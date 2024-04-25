@@ -2,13 +2,19 @@
 
 import asyncio
 from ctypes import c_bool
-from multiprocessing import Process, Value
-from multiprocessing.sharedctypes import SynchronizedBase
 import logging
 import json
+from multiprocessing import Process, Value
+from multiprocessing.sharedctypes import SynchronizedBase
+from pathlib import Path
+import time
 
 from flight.camera import Camera
+
+from flight.extract_gps import extract_gps, GPSData
 from flight.waypoint.goto import move_to
+from integration_tests.emg_obj_vision import emg_integration_pipeline
+from state_machine.flight_settings import FlightSettings
 from state_machine.state_tracker import update_state
 from state_machine.states.airdrop import Airdrop
 from state_machine.states.odlc import ODLC
@@ -48,7 +54,9 @@ async def run(self: ODLC) -> State:
         # Syncronized type hint is broken, see https://github.com/python/typeshed/issues/8799
         capture_status: SynchronizedBase[c_bool] = Value(c_bool, False)  # type: ignore
 
-        vision_process = Process(target=vision_odlc_logic, args=(capture_status,))
+        vision_process = Process(
+            target=vision_odlc_logic, args=(capture_status, self.flight_settings)
+        )
         vision_process.start()
         await find_odlcs(self, capture_status)
         try:
@@ -86,12 +94,13 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
         logging.info("ODLC")
 
         # Initialize the camera
-        if self.flight_settings.sim_flag is False:
+        if not self.flight_settings.sim_flag:
             camera: Camera | None = Camera()
         else:
             camera = None
 
-        # These waypoint values are all that are needed to traverse the whole odlc drop location
+        # The waypoint values stored in waypoint_data.json are all that are needed
+        # to traverse the whole odlc drop location
         # because it is a small rectangle
         # The first waypoint is the midpoint of
         # the left side of the rectangle(one of the short sides), the second point is the
@@ -105,21 +114,15 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
         # is vertical 52.1 degrees and horizontal 72.5,
         # so using the minimum length side of the photo the coverage would be 90 feet allowing
         # 10 feet overlap on both sides
-        waypoint: dict[str, list[float]] = {
-            "lats": [38.31451966813249, 38.31430872867596, 38.31461622313521],
-            "longs": [-76.54519982319357, -76.54397320409971, -76.54516993186949],
-            "Altitude": [100],
-        }
 
-        # traverses the 3 waypoints starting at the midpoint on left to midpoint on the right
-        # then to the top left corner at the rectangle
-        with open("flight/data/output.json", encoding="ascii") as output:
-            airdrop_dict = json.load(output)
-            airdrops: int = len(airdrop_dict)
-            point: int
-        while airdrops != 5:
+        gps_data: GPSData = extract_gps(self.flight_settings.path_data_path)
+
+        while True:
             logging.info("Starting odlc zone flyover")
 
+            # traverses the 3 waypoints starting at the midpoint on left to midpoint on the right
+            # then to the top left corner at the rectangle
+            point: int
             for point in range(3):
                 take_photos: bool = False
 
@@ -149,23 +152,29 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
                 if camera:
                     await camera.odlc_move_to(
                         self.drone,
-                        waypoint["lats"][point],
-                        waypoint["longs"][point],
-                        waypoint["Altitude"][0],
+                        gps_data["odlc_waypoints"][point].latitude,
+                        gps_data["odlc_waypoints"][point].longitude,
+                        gps_data["odlc_altitude"],
                         5 / 6,
                         take_photos,
                     )
                 else:
                     await move_to(
                         self.drone.system,
-                        waypoint["lats"][point],
-                        waypoint["longs"][point],
-                        waypoint["Altitude"][0],
+                        gps_data["odlc_waypoints"][point].latitude,
+                        gps_data["odlc_waypoints"][point].longitude,
+                        gps_data["odlc_altitude"],
                     )
+
+            if self.flight_settings.standard_object_count <= 0:
+                break
 
             with open("flight/data/output.json", encoding="ascii") as output:
                 airdrop_dict = json.load(output)
-                airdrops = len(airdrop_dict)
+                airdrops: int = len(airdrop_dict)
+
+            if airdrops >= self.flight_settings.standard_object_count:
+                break
 
         self.drone.odlc_scan = False
     except asyncio.CancelledError as ex:
@@ -175,9 +184,18 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
         pass
 
 
-def vision_odlc_logic(capture_status: "SynchronizedBase[c_bool]") -> None:
+def vision_odlc_logic(
+    capture_status: "SynchronizedBase[c_bool]", flight_settings: FlightSettings
+) -> None:
     """
     Implements the run method for the ODLC state.
+
+    Parameters
+    ----------
+    capture_status : SynchronizedBase[c_bool]
+        A text file containing True if all images have been taken and False otherwise
+    flight_settings : FlightSettings
+        Settings for this flight.
 
     Returns
     -------
@@ -190,7 +208,20 @@ def vision_odlc_logic(capture_status: "SynchronizedBase[c_bool]") -> None:
     and transitioning it to the Airdrop state.
     """
     try:
-        flyover_pipeline("flight/data/camera.json", capture_status, "flight/data/output.json")
+        camera_data_filename: str = "flight/data/camera.json"
+
+        pipeline = (
+            emg_integration_pipeline
+            if flight_settings.standard_object_count == 0
+            else flyover_pipeline
+        )
+
+        # Wait until camera.json exists
+        while not Path(camera_data_filename).is_file():
+            logging.info("Waiting for %s to exist", camera_data_filename)
+            time.sleep(1.0)
+
+        pipeline("flight/data/camera.json", capture_status, "flight/data/output.json")
     except asyncio.CancelledError as ex:
         logging.error("ODLC state canceled")
         raise ex
