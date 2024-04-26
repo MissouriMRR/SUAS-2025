@@ -42,7 +42,7 @@ PERCENT_CROSS_IGNORED: float = 0.85
 # The maximum allowed average difference between points in compared shape to be considered the same type
 MAX_ABS_ERROR: float = 1 / 8
 
- # Read the appropriate Array from json file
+# Read the appropriate Array from json file
 SHAPE_JSON = "vision/standard_object/sample_ODLCs.json"
 
 # Keys are the number of peaks, targets are the cooresponding shape
@@ -164,7 +164,6 @@ def compare_based_on_peaks(polar_array: NDArray[Shape["128"], Float64]) -> chars
     #min_index = np.argmin(polar_array)
     min_index = int(np.argmin(polar_array))
 
-
     # Rolls all values to put minimum radius at x = 0
     polar_array = np.roll(polar_array, -min_index)
     peaks: NDArray[Shape["*"], Float64]
@@ -186,7 +185,7 @@ def compare_based_on_peaks(polar_array: NDArray[Shape["128"], Float64]) -> chars
         # Sort peaks in by increasing value
         peaks = np.asarray(peaks)
         peaks_vals: NDArray[Shape["3"], Float64] = [0.0] * 3
-        
+
         peaks_vals[0] = polar_array[peaks[0]]
         peaks_vals[1] = polar_array[peaks[1]]
         peaks_vals[2] = polar_array[peaks[2]]
@@ -225,9 +224,7 @@ def compare_based_on_peaks(polar_array: NDArray[Shape["128"], Float64]) -> chars
     else:
         return None
 
-   
     shape_json_address: str = SHAPE_JSON
-
 
     with open(shape_json_address) as f:
         sample_shapes: NDArray[Shape["8, 128"], Float64] = json.load(f)
@@ -261,7 +258,7 @@ def generate_polar_array(cnt: consts.Contour) -> NDArray[Shape["128"], Float64]:
     x_avg: Float64 = 0
     y_avg: Float64 = 0
     num_points: int = 0
-    
+
     point: NDArray[Shape["2, 2"], IntC, Float64]
     # Finds average x and y value
     for point in cnt:
