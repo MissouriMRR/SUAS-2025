@@ -42,6 +42,8 @@ PERCENT_CROSS_IGNORED: float = 0.85
 # The maximum allowed average difference between points in compared shape to be considered the same type
 MAX_ABS_ERROR: float = 1 / 8
 
+ # Read the appropriate Array from json file
+SHAPE_JSON = "vision/standard_object/sample_ODLCs.json"
 
 # Keys are the number of peaks, targets are the cooresponding shape
 shape_from_peaks = {
@@ -159,8 +161,9 @@ def compare_based_on_peaks(polar_array: NDArray[Shape["128"], Float64]) -> chars
 
     # Normalizes radii to all be between 0 and 1
     polar_array /= np.max(polar_array)
-    # min_index = np.argmin(polar_array)
+    min_index = np.argmin(polar_array)
     min_index = int(np.argmin(polar_array))
+
 
     # Rolls all values to put minimum radius at x = 0
     polar_array = np.roll(polar_array, -min_index)
@@ -170,11 +173,11 @@ def compare_based_on_peaks(polar_array: NDArray[Shape["128"], Float64]) -> chars
     num_peaks = len(peaks)
     ODLC_guess: chars.ODLCShape
 
-    # If the minimum value is greater than .9 (90% of Maximum Radius), then it is a circle
+    # If the minimum value is greater than Maximum Radius (e.g.. data may change), then it is a circle
     if polar_array[0] > MIN_CIRCLE_RADIUS:
         ODLC_guess = chars.ODLCShape.CIRCLE
 
-    # If we have a shape able to be uniquely defined by it's number of peaks
+    # If we have a shape able to be uniquely defined by its number of peaks
     elif num_peaks == 2 or num_peaks == 4 or num_peaks == 8:
         ODLC_guess = shape_from_peaks[num_peaks]
 
@@ -183,6 +186,7 @@ def compare_based_on_peaks(polar_array: NDArray[Shape["128"], Float64]) -> chars
         # Sort peaks in by increasing value
         peaks = np.asarray(peaks)
         peaks_vals: NDArray[Shape["3"], Float64] = [0.0] * 3
+        
         peaks_vals[0] = polar_array[peaks[0]]
         peaks_vals[1] = polar_array[peaks[1]]
         peaks_vals[2] = polar_array[peaks[2]]
@@ -221,8 +225,10 @@ def compare_based_on_peaks(polar_array: NDArray[Shape["128"], Float64]) -> chars
     else:
         return None
 
-    # Read the appropriate Array from json file
-    shape_json_address: str = "vision/standard_object/sample_ODLCs.json"
+   
+    shape_json_address: str = SHAPE_JSON
+
+
     with open(shape_json_address) as f:
         sample_shapes: NDArray[Shape["8, 128"], Float64] = json.load(f)
 
@@ -255,6 +261,7 @@ def generate_polar_array(cnt: consts.Contour) -> NDArray[Shape["128"], Float64]:
     x_avg: Float64 = 0
     y_avg: Float64 = 0
     num_points: int = 0
+    
     point: NDArray[Shape["2, 2"], IntC, Float64]
     # Finds average x and y value
     for point in cnt:
