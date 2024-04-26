@@ -85,17 +85,3 @@ def fetchShapeContours(filename:str, draw_contours:bool=False, resulting_file_na
 
     # returns a filtered list of contours
     return all_contours
-
-"""
-TIME STATISTICS
------
-TIME PER IMAGE:
-With drawing contours: <0.15s
-Without drawing contours: <0.11s
-
-IMAGES PER SECOND
-With drawing contours: >6
-With drawing contours: >9
-
-When image is 3000x4000 (12,000,000 pixels)
-"""
