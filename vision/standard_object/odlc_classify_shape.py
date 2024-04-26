@@ -61,6 +61,10 @@ ODLCShape_To_ODLC_Index = {
 }
 
 
+
+
+
+
 def process_shapes(
     contours: list[consts.Contour], hierarchy: consts.Hierarchy, image_dims: tuple[int, int]
 ) -> list[bbox]:
@@ -138,7 +142,6 @@ def classify_shape(contour: consts.Contour) -> Union[chars.ODLCShape, None]:
         if the given contour is not an ODLC shape (doesnt match any ODLC)
     """
     return compare_based_on_peaks(generate_polar_array(contour))
-
 
 def compare_based_on_peaks(mysteryArr: NDArray[Shape["128, 2"], Float64]) -> chars.ODLCShape | None:
     # def compare_based_on_peaks(mysteryArr: List[float]) -> chars.ODLCShape | None:
@@ -361,6 +364,8 @@ def merge_sort(data: List[float]) -> List[float]:
     return results
 
 
+
+
 def cartesian_to_polar(x: float, y: float) -> tuple[float, float]:
     """
     Converts a rectangular (cartesian) coordinate to polar
@@ -378,7 +383,6 @@ def cartesian_to_polar(x: float, y: float) -> tuple[float, float]:
     rho: float = np.sqrt(x**2 + y**2)
     phi: float = np.arctan2(y, x)
     return (rho, phi)
-
 
 def cartesian_array_to_polar(
     arr: NDArray[Shape["*,2,2"], Float64]
