@@ -161,7 +161,7 @@ def compare_based_on_peaks(polar_array: NDArray[Shape["128"], Float64]) -> chars
 
     # Normalizes radii to all be between 0 and 1
     polar_array /= np.max(polar_array)
-    #min_index = np.argmin(polar_array)
+    # min_index = np.argmin(polar_array)
     min_index = int(np.argmin(polar_array))
 
     # Rolls all values to put minimum radius at x = 0
