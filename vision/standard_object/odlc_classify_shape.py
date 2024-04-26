@@ -64,10 +64,6 @@ ODLCShape_To_ODLC_Index = {
 }
 
 
-
-
-
-
 def process_shapes(
     contours: list[consts.Contour], hierarchy: consts.Hierarchy, image_dims: tuple[int, int]
 ) -> list[bbox]:
@@ -316,8 +312,6 @@ def condense_polar(
     return new_x, new_y
 
 
-
-
 def cartesian_to_polar(x: float, y: float) -> tuple[float, float]:
     """
     Converts a rectangular (cartesian) coordinate to polar
@@ -336,6 +330,7 @@ def cartesian_to_polar(x: float, y: float) -> tuple[float, float]:
     phi: float = np.arctan2(y, x)
     polar_point: Tuple[float, float] = (rho, phi)
     return polar_point
+
 
 def cartesian_array_to_polar(
     cartesian_array: NDArray[Shape["*,2,2"], Float64]
