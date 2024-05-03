@@ -213,8 +213,10 @@ def compare_based_on_peaks(polar_array: PolarArray) -> chars.ODLCShape | None:
     # This was added because many crosses were not showing 2 peaks per "beam" in higher prominence, but rather those peaks were blending into one
     else:
         # cropped_cross_array is a copy of the original polar_array, but the bottom 85% is deleted
-        cropped_cross_array: PolarArray = [0 if val < PERCENT_CROSS_IGNORED else val for val in polar_array]
-        
+        cropped_cross_array: PolarArray = [
+            0 if val < PERCENT_CROSS_IGNORED else val for val in polar_array
+        ]
+
         # finds the number of peaks in cropped_cross_array with the decreased prominence to catch more subtle peaks
         num_cross_peaks: int = len(
             signal.find_peaks(
@@ -233,9 +235,7 @@ def compare_based_on_peaks(polar_array: PolarArray) -> chars.ODLCShape | None:
         sample_shapes: NDArray[Shape["8, 128"], Float64] = json.load(f)
 
     # Finds the correct sample shape's array
-    sample_shape: PolarArray = sample_shapes[
-        SHAPE_INDICES[ODLC_guess]
-    ]
+    sample_shape: PolarArray = sample_shapes[SHAPE_INDICES[ODLC_guess]]
     sample_shape = np.asarray(sample_shape)
     if not verify_shape_choice(polar_array, sample_shape):
         return None
@@ -258,13 +258,12 @@ def generate_polar_array(cnt: consts.Contour) -> PolarArray:
         if the given contour is not an ODLC shape (doesnt match any ODLC)
     """
 
-    x_avg:float
-    y_avg:float
+    x_avg: float
+    y_avg: float
     x_avg, y_avg = np.mean(cnt, axis=2)
 
     cnt[:, 0, 0] -= y_avg
     cnt[:, 0, 1] -= x_avg
-
 
     # Converts array of rectangular coordinates (x,y) to polar (angle, radius)
     pol_cnt: NDArray[Shape["*, 2"], Float64] = cartesian_array_to_polar(cnt)
@@ -304,9 +303,9 @@ def condense_polar(
     # Create the scipy interpolation model and initializes the x-values to be uniformly spaced
     new_x: PolarArray = np.linspace(x.min(), x.max(), num=NUM_STEPS)
     # Runs the interpolation model on the x values to generate the cooresponding y-values to fit to the original data
-    new_y: PolarArray = scipy.interpolate.interp1d(
-        x, y, kind="linear", fill_value="extrapolate"
-    )(new_x)
+    new_y: PolarArray = scipy.interpolate.interp1d(x, y, kind="linear", fill_value="extrapolate")(
+        new_x
+    )
     return new_x, new_y
 
 
