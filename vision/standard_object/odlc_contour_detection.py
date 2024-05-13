@@ -4,7 +4,7 @@ import numpy as np
 
 def fetchShapeContours(
     filename: str, draw_contours: bool = False, resulting_file_name: str = ""
-) -> list[np.ndarray[np.uint8, np.uint8]]:
+) -> list[np.ndarray[np.dtype[np.uint8], np.dtype[np.uint8]]]:
     """
     Detects the boundaries of potential shapes based on a pixel or region's
     brightness and saturation, finding only the darkest, brightest, and
@@ -30,8 +30,8 @@ def fetchShapeContours(
     new_img = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)  # converts image to HLS color format
     new_img = cv2.GaussianBlur(new_img, (5, 5), sigmaX=0, sigmaY=0)  # blurs HLS image
 
-    img_brightness: np.ndarray[np.uint8, np.uint8]
-    img_saturation: np.ndarray[np.uint8, np.uint8]
+    img_brightness: np.ndarray[np.dtype[np.uint8], np.dtype[np.uint8]]
+    img_saturation: np.ndarray[np.dtype[np.uint8], np.dtype[np.uint8]]
 
     img_brightness = np.array(new_img[:, :, 1])  # reads lightness of image as 2D array
     img_saturation = np.array(new_img[:, :, 2])  # reads saturation of image as 2D array
@@ -42,9 +42,9 @@ def fetchShapeContours(
 
     avg_brt: float = np.average(img_brightness)  # gets average brightness
 
-    white_thresh: np.ndarray[np.uint8, np.uint8]
-    black_thresh: np.ndarray[np.uint8, np.uint8]
-    saturation_thresh: np.ndarray[np.uint8, np.uint8]
+    white_thresh: np.ndarray[np.dtype[np.uint8], np.dtype[np.uint8]]
+    black_thresh: np.ndarray[np.dtype[np.uint8], np.dtype[np.uint8]]
+    saturation_thresh: np.ndarray[np.dtype[np.uint8], np.dtype[np.uint8]]
 
     # gets all values with a brightness greater than 195, less than 60,
     # and with a saturation of greater than 50 (or 125 if the image is excessively dark)
