@@ -40,7 +40,7 @@ def fetchShapeContours(
     img_brightness = cv2.addWeighted(new_img[:, :, 1], 0.3, img_brightness, 0.7, 0)
     img_saturation = cv2.addWeighted(new_img[:, :, 2], 0.3, img_saturation, 0.7, 0)
 
-    avg_brt: float = np.average(img_brightness)  # gets average brightness
+    avg_brt: float = float(np.average(img_brightness))  # gets average brightness
 
     white_thresh: np.ndarray[np.dtype[np.uint8], np.dtype[np.uint8]]
     black_thresh: np.ndarray[np.dtype[np.uint8], np.dtype[np.uint8]]
@@ -59,14 +59,14 @@ def fetchShapeContours(
     black_thresh = cv2.dilate(black_thresh, np.ones([3, 3], np.uint8))
     saturation_thresh = cv2.dilate(saturation_thresh, np.ones([3, 3], np.uint8))
 
-    contours: np.ndarray
+    contours: np.ndarray[np.dtype[np.uint8], np.dtype[np.uint8]]
 
     # finds the contour outlines of the combined thresholds
     contours, _ = cv2.findContours(
         (white_thresh + black_thresh + saturation_thresh), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
     )
 
-    all_contours: list[np.ndarray] = []
+    all_contours: list[np.ndarray[np.dtype[np.uint8], np.dtype[np.uint8]]] = []
     for a in contours:
         # gets rectangle bounding entire contour
         x, y, w, h = cv2.boundingRect(a)
