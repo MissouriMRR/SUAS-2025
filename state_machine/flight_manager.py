@@ -2,16 +2,12 @@
 
 import asyncio
 import logging
-from multiprocessing import Process
-import time
-from typing import Any, Dict
 from mavsdk.telemetry import FlightMode, LandedState
 
 from state_machine.drone import Drone
 from state_machine.state_machine import StateMachine
 from state_machine.states import Start
 from state_machine.flight_settings import DEFAULT_STANDARD_OBJECT_COUNT, FlightSettings
-from state_machine.state_tracker import read_state_data
 
 
 class FlightManager:
@@ -65,7 +61,7 @@ class FlightManager:
         if sim_flag:
             self.drone.address = "udp://:14540"
         else:
-            self.drone.address = "serial:///dev/ttyUSB0:921600"
+            self.drone.address = "serial:///dev/ttyFTDI:921600"
 
         flight_settings_obj: FlightSettings = FlightSettings(
             sim_flag=sim_flag,
@@ -73,60 +69,33 @@ class FlightManager:
             skip_waypoint=skip_waypoint,
             standard_object_count=standard_object_count,
         )
+        logging.info("Initializing drone connection")
+        await self.drone.connect_drone()
 
         logging.info("Starting processes")
-        state_machine_process: Process = Process(
-            target=self._run_state_machine,
-            args=(flight_settings_obj,),
+
+        state_machine_task: asyncio.Task[None] = asyncio.ensure_future(
+            StateMachine(
+                Start(self.drone, flight_settings_obj), self.drone, flight_settings_obj
+            ).run()
         )
 
-        state_machine_process.start()
-
-        await self.run_kill_switch(state_machine_process)
+        asyncio.ensure_future(self.kill_switch(state_machine_task))
 
         try:
-            while state_machine_process.is_alive():
+            while not state_machine_task.done():
                 await asyncio.sleep(0.25)
 
-            logging.info("State machine joined")
-
-            logging.info("Done!")
+            logging.info("State machine task has completed. Exiting...")
+            return
         except KeyboardInterrupt:
             logging.critical(
                 "Keyboard interrupt detected. Killing state machine and landing drone."
             )
-        finally:
-            state_machine_process.terminate()
+            state_machine_task.cancel()
             await self._graceful_exit()
 
-    def _run_state_machine(self, flight_settings: FlightSettings) -> None:
-        """
-        Create and run a state machine until completion in the event loop.
-        This method should be called in its own process.
-
-        Parameters
-        ----------
-        flight_settings: FlightSettings
-            The flight settings to use.
-        """
-        logging.info("-- Starting state machine")
-        asyncio.run(
-            StateMachine(Start(self.drone, flight_settings), self.drone, flight_settings).run()
-        )
-
-    async def run_kill_switch(self, process: Process) -> None:
-        """
-        Create and run a kill switch in the event loop.
-
-        Parameters
-        ----------
-        state_machine_process : Process
-            The process running the state machine to kill.
-        """
-        logging.info("-- Starting kill switch")
-        await self._kill_switch(process)
-
-    async def _kill_switch(self, state_machine_process: Process) -> None:
+    async def kill_switch(self, state_machine_process: asyncio.Task[None]) -> None:
         """
         Enable the kill switch and wait until it activates. The drone should be
         Continuously check for whether or not the kill switch has been activated.
@@ -134,74 +103,27 @@ class FlightManager:
 
         Parameters
         ----------
-        state_machine_process: Process
-            The process running the state machine to kill. This process will
-            be terminated.
+        state_machine_process: asyncio.Task
+            The task running the state machine to kill. This task will
+            be cancelled.
         """
 
         # connect to the drone
         logging.debug("Kill switch running")
-        logging.info("Waiting for drone to connect...")
-        await self.drone.connect_drone()
+
         async for connection_state in self.drone.system.core.connection_state():
             if connection_state.is_connected:
                 logging.info("Kill switch has been enabled.")
                 break
 
         async for flight_mode in self.drone.system.telemetry.flight_mode():
-            while flight_mode != FlightMode.POSCTL:
-                time.sleep(1)
+            if flight_mode == FlightMode.POSCTL:
+                break
+            await asyncio.sleep(0.5)
 
         logging.critical("Kill switch activated. Terminating state machine.")
 
-        # follow me is used here because while the drone is moving to a waypoint
-        # it is in hold mode which is also used to stop the drone, so a brief mode
-        # change needs to happen and follow me also holds the drone still in reference
-        # to the ground station
-        await self.drone.system.follow_me.start()
-
-        await self.drone.system.offboard.stop()
-
-        state_machine_process.terminate()
-
-        # Get latest state started in the state machine
-        last_state_data: Dict[str, Any] | None = read_state_data()
-        if last_state_data is not None:
-            logging.info(last_state_data)
-            last_flight_settings: FlightSettings = FlightSettings(
-                simple_takeoff=last_state_data["flight_settings"]["simple_takeoff"],
-                title=last_state_data["flight_settings"]["title"],
-                description=last_state_data["flight_settings"]["description"],
-                skip_waypoint=last_state_data["flight_settings"]["waypoint"],
-                sim_flag=last_state_data["flight_settings"]["sim_flag"],
-                path_data_path=last_state_data["flight_settings"]["path_data_path"],
-            )
-            last_drone: Drone = Drone(
-                address=last_state_data["drone"]["address"],
-            )
-            last_drone.odlc_scan = last_state_data["drone"]["odlc_scan"]
-            # in case the drone eventually needs to start from another state
-            # state: State = getattr(sys.modules["state_machine.states"], last_state_data["state"])
-            state = Start(last_drone, last_flight_settings)
-        else:
-            # Unknown last state, just use Start
-            last_flight_settings = FlightSettings()
-            last_drone = Drone()
-            state = Start(last_drone, last_flight_settings)
-        print(__name__)
-        print(state)
-
-        # Gotta wait for user input here
-        logging.critical("Press enter to restart the state machine.")
-        input()
-        logging.critical("Are you sure?")
-        input()
-        state_machine: Process = Process(
-            target=self._run_state_machine,
-            args=(FlightSettings(),),
-        )
-        state_machine.start()
-        await self._kill_switch(state_machine)
+        state_machine_process.cancel()
 
     async def _graceful_exit(self) -> None:
         """
