@@ -13,7 +13,7 @@ from mavsdk import System
 # from flight.waypoint import goto
 
 SIM_ADDR: str = "udp://:14540"
-CON_ADDR: str = "serial:///dev/ttyUSB0:921600"
+CON_ADDR: str = "serial:///dev/ttyFTDI:921600"
 
 
 # Python imports made me angry so I copied move_to here
