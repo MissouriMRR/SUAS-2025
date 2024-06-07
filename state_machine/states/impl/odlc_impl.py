@@ -4,7 +4,7 @@ import asyncio
 from ctypes import c_bool
 import logging
 import json
-from multiprocessing import Process, Value
+from multiprocessing import Value
 from multiprocessing.sharedctypes import SynchronizedBase
 from pathlib import Path
 import time
@@ -54,21 +54,24 @@ async def run(self: ODLC) -> State:
         # Syncronized type hint is broken, see https://github.com/python/typeshed/issues/8799
         capture_status: SynchronizedBase[c_bool] = Value(c_bool, False)  # type: ignore
 
-        vision_process = Process(
-            target=vision_odlc_logic, args=(capture_status, self.flight_settings)
+        vision_task: asyncio.Task[None] = asyncio.ensure_future(
+            vision_odlc_logic(capture_status, self.flight_settings)
         )
-        vision_process.start()
-        await find_odlcs(self, capture_status)
+
+        asyncio.ensure_future(find_odlcs(self, capture_status))
         try:
             logging.info("Flight process joined")
-            vision_process.join()
             logging.info("Vision process joined")
+            while not vision_task.done():
+                await asyncio.sleep(0.25)
 
             logging.info("Done!")
         except KeyboardInterrupt:
             logging.critical(
                 "Keyboard interrupt detected. Killing state machine and landing drone."
             )
+        finally:
+            vision_task.cancel()
         return Airdrop(self.drone, self.flight_settings)
     except asyncio.CancelledError as ex:
         logging.error("ODLC state canceled")
@@ -184,7 +187,7 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
         pass
 
 
-def vision_odlc_logic(
+async def vision_odlc_logic(
     capture_status: "SynchronizedBase[c_bool]", flight_settings: FlightSettings
 ) -> None:
     """
