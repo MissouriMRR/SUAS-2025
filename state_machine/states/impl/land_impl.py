@@ -1,7 +1,6 @@
 """Implements the behavior of the Land state."""
 
 import asyncio
-import time
 import logging
 
 from mavsdk.telemetry import FlightMode
@@ -34,19 +33,20 @@ async def run(self: Land) -> None:
         logging.info("Landing")
 
         # Instruct the drone to land
-
         await self.drone.system.action.return_to_launch()
 
-        time.sleep(5)
+        await asyncio.sleep(5)
         async for flight_mode in self.drone.system.telemetry.flight_mode():
-            while flight_mode == FlightMode.LAND:
-                time.sleep(1)
+            if flight_mode != FlightMode.RETURN_TO_LAUNCH:
+                break
+            await asyncio.sleep(1)
 
+        await self.drone.system.action.disarm()
+        logging.info("Land state complete.")
+        return
     except asyncio.CancelledError as ex:
         logging.error("Land state canceled")
         raise ex
-    finally:
-        pass
 
 
 # Setting the run_callable attribute of the Land class to the run function

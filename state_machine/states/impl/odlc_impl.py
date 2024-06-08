@@ -7,7 +7,6 @@ import json
 from multiprocessing import Value
 from multiprocessing.sharedctypes import SynchronizedBase
 from pathlib import Path
-import time
 
 from flight.camera import Camera
 
@@ -60,12 +59,12 @@ async def run(self: ODLC) -> State:
 
         asyncio.ensure_future(find_odlcs(self, capture_status))
         try:
-            logging.info("Flight process joined")
-            logging.info("Vision process joined")
+            logging.info("Starting check for task completion")
+
             while not vision_task.done():
                 await asyncio.sleep(0.25)
 
-            logging.info("Done!")
+            logging.info("ODLC scan complete. State completing...")
         except KeyboardInterrupt:
             logging.critical(
                 "Keyboard interrupt detected. Killing state machine and landing drone."
@@ -120,8 +119,10 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
 
         gps_data: GPSData = extract_gps(self.flight_settings.path_data_path)
 
-        while True:
+        loops: int = 0  # Max amount of loops before giving up
+        while loops <= 5:
             logging.info("Starting odlc zone flyover")
+            loops += 1
 
             # traverses the 3 waypoints starting at the midpoint on left to midpoint on the right
             # then to the top left corner at the rectangle
@@ -220,9 +221,10 @@ async def vision_odlc_logic(
         )
 
         # Wait until camera.json exists
+        logging.info("Waiting for %s to exist", camera_data_filename)
         while not Path(camera_data_filename).is_file():
-            logging.info("Waiting for %s to exist", camera_data_filename)
-            time.sleep(1.0)
+            await asyncio.sleep(1)
+        logging.info("Camera data file found.")
 
         pipeline("flight/data/camera.json", capture_status, "flight/data/output.json")
     except asyncio.CancelledError as ex:
