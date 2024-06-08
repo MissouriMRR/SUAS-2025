@@ -4,6 +4,7 @@
 
 import asyncio
 import logging
+import traceback
 from typing import Final
 
 import mavsdk.telemetry
@@ -57,11 +58,13 @@ async def run(self: Waypoint) -> State:
     try:
         if not self.flight_settings.skip_waypoint:
             await waypoint_logic(self)
+            logging.info("Waypoint state completed")
 
         return (ODLC if self.drone.odlc_scan else Airdrop)(self.drone, self.flight_settings)
 
     except asyncio.CancelledError as ex:
         logging.error("Waypoint state canceled")
+        traceback.print_exc()
         raise ex
     finally:
         pass
