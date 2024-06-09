@@ -5,6 +5,7 @@ import json
 import logging
 import os
 from datetime import datetime
+from pathlib import Path
 
 import gphoto2
 
@@ -191,8 +192,19 @@ class Camera:
 
                 info.update(point)
 
-                with open("camera.json", "w", encoding="ascii") as camera:
-                    json.dump(info, camera)
+                if not Path("flight/data/camera.json").is_file():
+                    with open("flight/data/camera.json", "x", encoding="ascii") as camerajson:
+                        json.dump(info, camerajson)
+                elif Path("flight/data/camera.json").stat().st_size == 0:
+                    with open("flight/data/camera.json", "w", encoding="ascii") as camerajson:
+                        json.dump(info, camerajson)
+                else:
+                    with open("flight/data/camera.json", mode="r", encoding="utf-8") as camerajson:
+                        file_data: dict[str, dict[str, int | list[int | float] | float]] = (
+                            json.load(camerajson)
+                        )
+                    with open("flight/data/camera.json", "w", encoding="ascii") as camerajson:
+                        json.dump(file_data | info, camerajson)
 
             if take_photos:
                 await drone.system.action.set_maximum_speed(20)
