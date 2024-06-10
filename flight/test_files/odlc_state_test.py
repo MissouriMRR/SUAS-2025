@@ -1,7 +1,6 @@
 """A unit test for the ODLC state."""
 
 import asyncio
-from multiprocessing import Process
 import json
 import logging
 
@@ -9,18 +8,6 @@ from state_machine.drone import Drone
 from state_machine.state_machine import StateMachine
 from state_machine.states import Start
 from state_machine.flight_settings import FlightSettings
-
-
-def start_state_machine(state_machine: StateMachine) -> None:
-    """
-    Start the state machine.
-
-    Parameters
-    ----------
-    state_machine: StateMachine
-        The state_machine to start
-    """
-    asyncio.run(state_machine.run())
 
 
 async def run_test(_sim: bool, odlc_count: int = 5) -> None:
@@ -37,14 +24,8 @@ async def run_test(_sim: bool, odlc_count: int = 5) -> None:
     logging.basicConfig(level=logging.INFO)
     drone: Drone = Drone()
     flight_settings: FlightSettings = FlightSettings(sim_flag=_sim, skip_waypoint=True)
-    state_machine: StateMachine = StateMachine(
-        Start(drone, flight_settings), drone, flight_settings
-    )
-    state_machine_process: Process = Process(
-        target=start_state_machine,
-        args=(state_machine,),
-    )
-    state_machine_process.start()
+    await drone.connect_drone()
+    asyncio.ensure_future(StateMachine(Start(drone, flight_settings), drone, flight_settings).run())
 
     activated_odlcs: int = 0
     while activated_odlcs != odlc_count:

@@ -32,7 +32,6 @@ async def run(self: Start) -> State:
     try:
         update_state("Start")
         logging.info("Start state running")
-        await self.drone.connect_drone()
 
         # connect to the drone
         logging.info("Waiting for drone to connect...")
