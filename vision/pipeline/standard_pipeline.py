@@ -9,11 +9,12 @@ from nptyping import NDArray, Shape, UInt8, Float32
 import vision.common.constants as consts
 
 from vision.competition_inputs.bottle_reader import BottleData
-from vision.common.odlc_characteristics import ODLCColor
 from vision.common.bounding_box import BoundingBox
+from vision.common.odlc_characteristics import ODLCColor
+
 from vision.standard_object.odlc_image_processing import preprocess_std_odlc
-from vision.standard_object.odlc_text_detection import get_odlc_text
 from vision.standard_object.odlc_classify_shape import process_shapes
+from vision.standard_object.odlc_text_detection import get_odlc_text
 from vision.standard_object.odlc_colors import find_colors
 
 import vision.pipeline.pipeline_utils as pipe_utils
@@ -49,12 +50,10 @@ def find_standard_objects(
 
     contour_heirarchies_list: ContourHeirarchyList = iterate_find_contours(original_image)
 
-    contours: tuple[consts.Contour, ...]
-    hierarchy: consts.Hierarchy
-    for contours, hierarchy in contour_heirarchies_list:
-        shapes: list[BoundingBox] = process_shapes(
-            list(contours), hierarchy, original_image.shape[:2]
-        )
+    contours: tuple[consts.Contour]
+    _hierarchy: consts.Hierarchy
+    for contours, _hierarchy in contour_heirarchies_list:
+        shapes: list[BoundingBox] = process_shapes(contours)
 
         shape: BoundingBox
         for shape in shapes:
@@ -245,7 +244,7 @@ def create_odlc_dict(sorted_odlcs: list[list[BoundingBox]]) -> consts.ODLCDict:
         The dictionary of ODLCs matching the output format
     """
 
-    odlc_dict: consts.ODLCDict = dict()
+    odlc_dict: consts.ODLCDict = {}
 
     i: int
     bottle: list[BoundingBox]

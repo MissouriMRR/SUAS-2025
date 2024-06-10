@@ -1,17 +1,19 @@
 """Takes the contour of an ODLC shape and determine which shape it is in the certain file path"""
 
-import numpy as np
-import scipy
-from scipy import signal
-from vision.common import constants as consts
-from vision.common import odlc_characteristics as chars
-from nptyping import NDArray, Shape, IntC, Float64
-from vision.common.bounding_box import BoundingBox as bbox
-from vision.common.bounding_box import tlwh_to_vertices
-from vision.common.bounding_box import ObjectType
 import json
 from typing import List, Tuple, TypeAlias
 
+import cv2
+import numpy as np
+import scipy
+from nptyping import NDArray, Shape, Float64
+from scipy import signal
+
+from vision.common import constants as consts
+from vision.common import odlc_characteristics as chars
+from vision.common.bounding_box import BoundingBox as bbox
+from vision.common.bounding_box import tlwh_to_vertices
+from vision.common.bounding_box import ObjectType
 
 # constants
 PolarArray: TypeAlias = NDArray[Shape["128"], Float64]
@@ -31,16 +33,19 @@ MIN_CIRCLE_RADIUS: float = 0.9
 MIN_DIFF_SHORT_PEAKS_QC: float = 0.15
 
 # Maximum allowed difference between the longest peaks of a quarter circle
-# Quarter Circle should have 2 long peaks which are very close in length, and one peak which is a bit shorter
+# Quarter Circle should have 2 long peaks which are very close in length,
+# and one peak which is a bit shorter
 MAX_DIFF_LONG_PEAKS_QC: float = 0.5
 
 # Maximum allowed smallest radius for a shape to be considered a star
 MAX_SMALLEST_RADIUS_STAR: float = 0.65
 
-# The bottom percentage of a shape's polar graph that is removed to safely lower prominece and highlight the cross's slight peaks
+# The bottom percentage of a shape's polar graph that is removed to
+# safely lower prominece and highlight the cross's slight peaks
 PERCENT_CROSS_IGNORED: float = 0.85
 
-# The maximum allowed average difference between points in compared shape to be considered the same type
+# The maximum allowed average difference between points in
+# compared shape to be considered the same type
 MAX_ABS_ERROR: float = 1 / 8
 
 # Read the appropriate Array from json file
@@ -67,15 +72,13 @@ SHAPE_INDICES = {
 }
 
 
-def process_shapes(
-    contours: list[consts.Contour], hierarchy: consts.Hierarchy, image_dims: tuple[int, int]
-) -> list[bbox]:
+def process_shapes(contours: tuple[consts.Contour]) -> list[bbox]:
     """
     Takes all of the contours of an image and will return BoundingBox list w/ shape attributes
 
     Parameters
     ----------
-    contours : list[consts.Contour]
+    contours : tuple[consts.Contour]
         List of all contours from the image (from cv2.findContours())
         NOTE: cv2.findContours() returns as a tuple, so convert it to list w/ list(the_tuple)
     hierarchy : consts.Hierarchy
@@ -95,38 +98,29 @@ def process_shapes(
         contour at same index in list and with an attribute that is {"shape": chars.ODLCShape}
         with the identified shape or {"shape": None} if the contour does not match any.
     """
-    bbox_list: List[bbox]
+    bbox_list: List[bbox] = []
+    print(len(contours))
     for contour in contours:
-        Shape_Type: chars.ODLCShape | None = classify_shape(contour)
+        shape_type: chars.ODLCShape | None = classify_shape(contour)
 
-        if not Shape_Type == None:
-            min_y: int = contour[0][0][0]
-            max_y: int = contour[0][0][0]
-            min_x: int = contour[0][0][1]
-            max_x: int = contour[0][0][1]
-            vertices: consts.Corners
+        vertices: consts.Corners
+        min_x: int
+        min_y: int
+        width: int
+        height: int
+        min_x, min_y, width, height = cv2.boundingRect(contour)
+        vertices = tlwh_to_vertices(min_x, min_y, width, height)
 
-            list_of_points: NDArray[Shape["2,2"], IntC]
-            for list_of_points in contour:
-                point: Tuple[int, int] = list_of_points[0]
-                y, x = point
-                max_y = max(y, max_y)
-                min_y = min(y, min_y)
-                max_x = max(x, max_x)
-                min_x = min(y, min_y)
-            height: int = max_y - min_y
-            width: int = max_x - min_x
-            vertices = tlwh_to_vertices(min_x, max_y, width, height)
-
-        bounding_box: bbox
-        bbox.__init__(bounding_box, vertices, ObjectType.STD_OBJECT, None)
+        bounding_box: bbox = bbox(vertices, ObjectType.STD_OBJECT, None)
+        bounding_box.set_attribute("shape", shape_type)
         bbox_list.append(bounding_box)
     return bbox_list
 
 
 def classify_shape(contour: consts.Contour) -> chars.ODLCShape | None:
     """
-    Will determine if the contour matches any ODLC shape, then verify that choice by comparing to sample
+    Will determine if the contour matches any ODLC shape,
+    then verify that choice by comparing to sample
 
     Parameters
     ----------
@@ -135,18 +129,19 @@ def classify_shape(contour: consts.Contour) -> chars.ODLCShape | None:
 
     Returns
     -------
-    shape : chars.ODLCShape | None
+    odlc_guess : chars.ODLCShape | None
         Will return one of the ODLC shapes defined in vision/common/odlc_characteristics or None
         if the given contour is not an ODLC shape (doesn't match any ODLC)
     """
-    polar_array: PolarArray = generate_polar_array
-    ODLC_guess: chars.ODLCShape | None = compare_based_on_peaks(polar_array)
-    return ODLC_guess
+    radius_polar_array: PolarArray = generate_polar_array(contour)
+    odlc_guess: chars.ODLCShape | None = compare_based_on_peaks(radius_polar_array)
+    return odlc_guess
 
 
 def compare_based_on_peaks(polar_array: PolarArray) -> chars.ODLCShape | None:
     """
-    Will determine if a polar array matches any ODLC shape, then verify that choice by comparing to sample
+    Will determine if a polar array matches any ODLC shape,
+    then verify that choice by comparing to sample
 
     Parameters
     ----------
@@ -173,15 +168,16 @@ def compare_based_on_peaks(polar_array: PolarArray) -> chars.ODLCShape | None:
     peaks = signal.find_peaks(polar_array, prominence=PROMINENCE)[0]
     num_peaks: int
     num_peaks = len(peaks)
-    ODLC_guess: chars.ODLCShape
+    odlc_guess: chars.ODLCShape
 
-    # If the minimum value is greater than Maximum Radius (e.g.. data may change), then it is a circle
+    # If the minimum value is greater than Maximum Radius
+    # (e.g.. data may change), then it is a circle
     if polar_array[0] > MIN_CIRCLE_RADIUS:
-        ODLC_guess = chars.ODLCShape.CIRCLE
+        odlc_guess = chars.ODLCShape.CIRCLE
 
     # If we have a shape able to be uniquely defined by its number of peaks
-    elif num_peaks == 2 or num_peaks == 4 or num_peaks == 8:
-        ODLC_guess = shape_from_peaks[num_peaks]
+    elif num_peaks in (2, 4, 8):
+        odlc_guess = shape_from_peaks[num_peaks]
 
     # Must narrow down from triangle or quarter circle
     elif num_peaks == 3:
@@ -197,27 +193,30 @@ def compare_based_on_peaks(polar_array: PolarArray) -> chars.ODLCShape | None:
             peaks_vals[2] - peaks_vals[1] < MAX_DIFF_LONG_PEAKS_QC
             and peaks_vals[1] - peaks_vals[0] > MIN_DIFF_SHORT_PEAKS_QC
         ):
-            ODLC_guess = chars.ODLCShape.QUARTER_CIRCLE
+            odlc_guess = chars.ODLCShape.QUARTER_CIRCLE
         else:
-            ODLC_guess = chars.ODLCShape.TRIANGLE
+            odlc_guess = chars.ODLCShape.TRIANGLE
 
     # Must narrow down from pentagon or star
     elif num_peaks == 5:
-        min: float = np.min(polar_array)
+        minimum: float = np.min(polar_array)
         # If minimum radius is less than .65 (65% of maximum radius), the we have a star
-        if min < MAX_SMALLEST_RADIUS_STAR:
-            ODLC_guess = chars.ODLCShape.STAR
+        if minimum < MAX_SMALLEST_RADIUS_STAR:
+            odlc_guess = chars.ODLCShape.STAR
         else:
-            ODLC_guess = chars.ODLCShape.PENTAGON
-    # This else states that is the upper 15% of a shape has 8 peaks when prominence is decreased, it is likely a crosss
-    # This was added because many crosses were not showing 2 peaks per "beam" in higher prominence, but rather those peaks were blending into one
+            odlc_guess = chars.ODLCShape.PENTAGON
+    # This else states that is the upper 15% of a shape has 8 peaks
+    # when prominence is decreased, it is likely a cross
+    # This was added because many crosses were not showing 2 peaks per
+    # "beam" in higher prominence, but rather those peaks were blending into one
     else:
         # cropped_cross_array is a copy of the original polar_array, but the bottom 85% is deleted
         cropped_cross_array: PolarArray = [
             0 if val < PERCENT_CROSS_IGNORED else val for val in polar_array
         ]
 
-        # finds the number of peaks in cropped_cross_array with the decreased prominence to catch more subtle peaks
+        # finds the number of peaks in cropped_cross_array with the
+        # decreased prominence to catch more subtle peaks
         num_cross_peaks: int = len(
             signal.find_peaks(
                 cropped_cross_array,
@@ -225,26 +224,26 @@ def compare_based_on_peaks(polar_array: PolarArray) -> chars.ODLCShape | None:
             )[0]
         )
         if num_cross_peaks == 8:
-            ODLC_guess = chars.ODLCShape.CROSS
+            odlc_guess = chars.ODLCShape.CROSS
         else:
             return None
 
     shape_json_address: str = SHAPE_JSON
 
-    with open(shape_json_address) as f:
-        sample_shapes: NDArray[Shape["8, 128"], Float64] = json.load(f)
+    with open(shape_json_address, encoding="UTF-8") as sample_odlc_file:
+        sample_shapes: NDArray[Shape["8, 128"], Float64] = json.load(sample_odlc_file)
 
     # Finds the correct sample shape's array
-    sample_shape: PolarArray = sample_shapes[SHAPE_INDICES[ODLC_guess]]
+    sample_shape: PolarArray = sample_shapes[SHAPE_INDICES[odlc_guess]]
     sample_shape = np.asarray(sample_shape)
     if not verify_shape_choice(polar_array, sample_shape):
         return None
-    return ODLC_guess
+    return odlc_guess
 
 
 def generate_polar_array(cnt: consts.Contour) -> PolarArray:
     """
-    Generates 2 arrays storing the x and y coordinates of a new polar array
+    Generates an array storing the radii values of a normalized polar array
 
     Parameters
     ----------
@@ -257,23 +256,22 @@ def generate_polar_array(cnt: consts.Contour) -> PolarArray:
         Will return one of the ODLC shapes defined in vision/common/odlc_characteristics or None
         if the given contour is not an ODLC shape (doesnt match any ODLC)
     """
-
     x_avg: float
     y_avg: float
-    x_avg, y_avg = np.mean(cnt, axis=2)
+    x_avg, y_avg = np.mean(cnt, axis=0)[0]
 
-    cnt[:, 0, 0] -= y_avg
-    cnt[:, 0, 1] -= x_avg
+    cnt[:, 0, 0] -= int(y_avg)
+    cnt[:, 0, 1] -= int(x_avg)
 
     # Converts array of rectangular coordinates (x,y) to polar (angle, radius)
     pol_cnt: NDArray[Shape["*, 2"], Float64] = cartesian_array_to_polar(cnt)
     polar_sorted_indices = np.argsort(pol_cnt[:, 1])
     pol_cnt_sorted = pol_cnt[polar_sorted_indices]
-    x: NDArray[Shape["*"], Float64]
-    y: NDArray[Shape["*"], Float64]
-    x, y = condense_polar(pol_cnt_sorted)
+    _radius_array: NDArray[Shape["*"], Float64]
+    angle_array: NDArray[Shape["*"], Float64]
+    _radius_array, angle_array = condense_polar(pol_cnt_sorted)
 
-    return y
+    return angle_array
 
 
 def condense_polar(
@@ -289,24 +287,25 @@ def condense_polar(
 
     Returns
     -------
-    new_x, new_y : PolarArray, PolarArray
+    new_angle, new_radius : PolarArray, PolarArray
 
     """
     # Converting data to a form able to be passed into scipy.interp1d
-    x: NDArray[Shape["*"]] = np.empty(len(polar_array))
-    y: NDArray[Shape["*"]] = np.empty(len(polar_array))
+    angle: NDArray[Shape["*"]] = np.empty(len(polar_array))
+    radius: NDArray[Shape["*"]] = np.empty(len(polar_array))
     for i in range(len(polar_array)):
-        x[i] = polar_array[i][1]
-        y[i] = polar_array[i][0]
+        angle[i] = polar_array[i][1]
+        radius[i] = polar_array[i][0]
 
     # Linear interpolation to normalize all shapes to have the same number of data points
     # Create the scipy interpolation model and initializes the x-values to be uniformly spaced
-    new_x: PolarArray = np.linspace(x.min(), x.max(), num=NUM_STEPS)
-    # Runs the interpolation model on the x values to generate the cooresponding y-values to fit to the original data
-    new_y: PolarArray = scipy.interpolate.interp1d(x, y, kind="linear", fill_value="extrapolate")(
-        new_x
-    )
-    return new_x, new_y
+    new_angle: PolarArray = np.linspace(0, 2 * np.pi, num=NUM_STEPS)
+    # Runs the interpolation model on the x values to generate
+    # the cooresponding y-values to fit to the original data
+    new_radius: PolarArray = scipy.interpolate.interp1d(
+        angle, radius, kind="linear", fill_value="extrapolate"
+    )(new_angle)
+    return new_angle, new_radius
 
 
 def cartesian_to_polar(x: float, y: float) -> tuple[float, float]:
@@ -321,7 +320,8 @@ def cartesian_to_polar(x: float, y: float) -> tuple[float, float]:
     Returns
     -------
     (rho, phi) : (float, float)
-        Returns a tuple of the radius and angle of the cartesian point converted to polar coordinates
+        Returns a tuple of the radius and angle of the
+        cartesian point converted to polar coordinates
     """
     rho: float = np.sqrt(x**2 + y**2)
     phi: float = np.arctan2(y, x)
@@ -347,16 +347,15 @@ def cartesian_array_to_polar(
     """
     cartesian_array_x: NDArray[Shape["*, 2"], Float64] = cartesian_array[:, 0, 1]
     cartesian_array_y: NDArray[Shape["*, 2"], Float64] = cartesian_array[:, 0, 0]
-    polar_array: NDArray[Shape["2, *"], Float64] = cartesian_to_polar(
-        cartesian_array_x, cartesian_array_y
-    )
-    reformated_polar_array: NDArray[Shape["*, 2"], Float64] = np.swapaxes(polar_array, 0, 1)
-    return reformated_polar_array
+    rho_array: NDArray[Shape["*, 2"], Float64] = np.hypot(cartesian_array_x, cartesian_array_y)
+    phi_array: NDArray[Shape["*, 2"], Float64] = np.arctan2(cartesian_array_y, cartesian_array_x)
+    polar_array: NDArray[Shape["2, *"], Float64] = np.stack((rho_array, phi_array), axis=1)
+    return polar_array
 
 
 def verify_shape_choice(
     mystery_radii_list: PolarArray,
-    sample_ODLC_radii: PolarArray,
+    sample_odlc_radii: PolarArray,
 ) -> bool:
     """
     Verifies that an ODLC's Polar graph is adequately similar to the "guessed" ODLC's sample graph
@@ -373,5 +372,5 @@ def verify_shape_choice(
     shape : bool
         Returns true if the absolute difference of the two radii lists is small enough, false if not
     """
-    difference: float = np.sum(np.abs(mystery_radii_list - sample_ODLC_radii))
+    difference: float = np.sum(np.abs(mystery_radii_list - sample_odlc_radii))
     return difference < NUM_STEPS * MAX_ABS_ERROR
