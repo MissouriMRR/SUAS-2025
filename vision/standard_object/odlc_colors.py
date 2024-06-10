@@ -176,12 +176,16 @@ def get_color_vals(
     dist_2: float = cv2.mean(distance_mat, color_2_mat)[0]
 
     # sort color values, assumes that text color value is closer to the center
-    text_color_val: NDArray[Shape["3"], UInt8] = (
-        color_vals[0] if min(dist_1, dist_2) == dist_1 else color_vals[1]
-    )
-    shape_color_val: NDArray[Shape["3"], UInt8] = (
-        color_vals[0] if np.all(text_color_val == color_vals[1]) else color_vals[1]
-    )
+    text_color_val: NDArray[Shape["3"], UInt8]
+    shape_color_val: NDArray[Shape["3"], UInt8]
+    if len(color_vals) < 2:
+        text_color_val = color_vals[0]
+        shape_color_val = color_vals[0]
+    else:
+        text_color_val = color_vals[0] if min(dist_1, dist_2) == dist_1 else color_vals[1]
+        shape_color_val = (
+            color_vals[0] if np.all(text_color_val == color_vals[1]) else color_vals[1]
+        )
 
     return shape_color_val, text_color_val
 
