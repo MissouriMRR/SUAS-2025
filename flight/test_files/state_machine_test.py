@@ -4,7 +4,7 @@ import asyncio
 from state_machine.flight_manager import FlightManager
 
 SIM_ADDR: str = "udp://:14540"  # Address to connect to the simulator
-CONTROLLER_ADDR: str = "serial:///dev/ttyUSB0"  # Address to connect to a pixhawk board
+CONTROLLER_ADDR: str = "serial:///dev/ttyFTDI"  # Address to connect to a pixhawk board
 
 
 async def run_test(sim: bool) -> None:

@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-from multiprocessing import Process
 from mavsdk.telemetry import FlightMode
 
 from state_machine.flight_manager import FlightManager
@@ -42,12 +41,12 @@ async def run_flight_code() -> None:
         await asyncio.sleep(1)
 
 
-def start_1() -> None:
+async def start_1() -> None:
     """Start the flight code in async."""
     asyncio.run(run_flight_code())
 
 
-def start_2(flight_process: Process) -> None:
+async def start_2(flight_process: asyncio.Task[None]) -> None:
     """Start the kill switch in async.
 
     Args:
@@ -55,17 +54,15 @@ def start_2(flight_process: Process) -> None:
     """
     flight_manager: FlightManager = FlightManager()
     flight_manager.drone.address = "udp://:14540"
-    asyncio.run(FlightManager().run_kill_switch(flight_process))
+    asyncio.run(FlightManager().kill_switch(flight_process))
 
 
 async def start_test() -> None:
     """Start the unit test."""
     logging.basicConfig(level=logging.INFO)
-    flight_manager_process: Process = Process(target=start_1)
-    kill_switch_process: Process = Process(target=start_2, args=(flight_manager_process,))
 
-    flight_manager_process.start()
-    kill_switch_process.start()
+    flight_manager_task: asyncio.Task[None] = asyncio.ensure_future(start_1())
+    asyncio.ensure_future(start_2(flight_manager_task))
 
 
 if __name__ == "__main__":

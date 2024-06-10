@@ -30,11 +30,9 @@ from flight.extract_gps import BoundaryPoint, GPSData, extract_gps
 from flight.extract_gps import Waypoint as Waylist
 from flight.waypoint.calculate_distance import calculate_distance
 from state_machine.drone import Drone
-from state_machine.flight_manager import FlightManager
-
-
-SIM_ADDR: Final[str] = "udp://:14540"  # Address to connect to the simulator
-CONTROLLER_ADDR: Final[str] = "serial:///dev/ttyUSB0"  # Address to connect to a pixhawk board
+from state_machine.flight_settings import FlightSettings
+from state_machine.state_machine import StateMachine
+from state_machine.states.start import Start
 
 # 3.28084 feet per meter
 CLOSE_THRESHOLD: Final[float] = (
@@ -123,12 +121,11 @@ async def waypoint_check(drone: Drone, _sim: bool, path_data_path: str) -> None:
     # 5 seconds, so it doesn't matter.
     await asyncio.sleep(5.0)
 
-    await drone.connect_drone()
-
     # connect to the drone
     async for state in drone.system.core.connection_state():
         if state.is_connected:
             break
+        await asyncio.sleep(1)
 
     previously_out_of_bounds: bool = False
     previous_log_time: float = time.perf_counter()  # time.perf_counter() is monotonic
@@ -180,9 +177,18 @@ async def run_test(_sim: bool) -> None:  # Temporary fix for unused variable
 
     path_data_path: str = "flight/data/waypoint_data.json" if _sim else "flight/data/golf_data.json"
 
-    flight_manager: FlightManager = FlightManager()
-    asyncio.ensure_future(waypoint_check(flight_manager.drone, _sim, path_data_path))
-    await flight_manager.run_manager(_sim, path_data_path)
+    drone: Drone = Drone()
+    drone.odlc_scan = False
+    flight_settings: FlightSettings = FlightSettings(sim_flag=_sim, path_data_path=path_data_path)
+    await drone.connect_drone()
+
+    state_task: asyncio.Task[None] = asyncio.ensure_future(
+        StateMachine(Start(drone, flight_settings), drone, flight_settings).run()
+    )
+    await waypoint_check(drone, _sim, path_data_path)
+
+    while state_task.done() is False:
+        await asyncio.sleep(1)
 
 
 if __name__ == "__main__":
