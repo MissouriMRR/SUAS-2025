@@ -10,15 +10,15 @@ from vision.common.constants import Contour, Hierarchy, Image
 # Contour restriction constants
 MAX_CONTOUR_AREA: int = 10000
 MIN_CONTOUR_AREA: int = 300
-MAX_ASPECT_RATIO: float = 3
-MIN_SOLIDITY: float = 0.75
+MAX_ASPECT_RATIO: float = 1.8
+MIN_SOLIDITY: float = 0.85
 MIN_PROPORTIONAL_AREA: float = 0.4
 
 # Contour detection constants
 KERNEL_SIZE: cv2.typing.Size = (5, 5)
 MIN_WHITE_VALUE: int = 195
-MAX_BLACK_VALUE: int = 60
-MIN_SATURATION_VALUE: int = 50
+MAX_BLACK_VALUE: int = 50
+MIN_SATURATION_VALUE: int = 105
 MIN_DARK_SATURATION_VALUE: int = 125
 BLUR_IMG_WEIGHT: float = 0.7
 NORMAL_IMG_WEIGHT: float = 0.3
