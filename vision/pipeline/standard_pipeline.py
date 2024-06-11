@@ -12,6 +12,7 @@ from vision.competition_inputs.bottle_reader import BottleData
 from vision.common.bounding_box import BoundingBox
 from vision.common.odlc_characteristics import ODLCColor
 
+from vision.standard_object.odlc_contour_detection import fetch_shape_contours
 from vision.standard_object.odlc_image_processing import preprocess_std_odlc
 from vision.standard_object.odlc_classify_shape import process_shapes
 from vision.standard_object.odlc_text_detection import get_odlc_text
@@ -47,21 +48,15 @@ def find_standard_objects(
     """
 
     found_odlcs: list[BoundingBox] = []
-
-    contour_heirarchies_list: ContourHeirarchyList = iterate_find_contours(original_image)
-
-    contours: tuple[consts.Contour]
-    _hierarchy: consts.Hierarchy
-    for contours, _hierarchy in contour_heirarchies_list:
-        shapes: list[BoundingBox] = process_shapes(contours)
-
-        shape: BoundingBox
-        for shape in shapes:
-            # Set the shape attributes by reference. If successful, keep the shape
-            if set_shape_attributes(shape, original_image) and pipe_utils.set_generic_attributes(
-                shape, image_path, original_image.shape, camera_parameters
-            ):
-                found_odlcs.append(shape)
+    contours: list[consts.Contour] = fetch_shape_contours(original_image, True, "contours.jpg")
+    shapes: list[BoundingBox] = process_shapes(contours)
+    shape: BoundingBox
+    for shape in shapes:
+        # Set the shape attributes by reference. If successful, keep the shape
+        if set_shape_attributes(shape, original_image) and pipe_utils.set_generic_attributes(
+            shape, image_path, original_image.shape, camera_parameters
+        ):
+            found_odlcs.append(shape)
 
     return found_odlcs
 

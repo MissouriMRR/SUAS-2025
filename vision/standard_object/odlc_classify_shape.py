@@ -72,7 +72,7 @@ SHAPE_INDICES = {
 }
 
 
-def process_shapes(contours: tuple[consts.Contour]) -> list[bbox]:
+def process_shapes(contours: list[consts.Contour]) -> list[bbox]:
     """
     Takes all of the contours of an image and will return BoundingBox list w/ shape attributes
 
@@ -99,10 +99,8 @@ def process_shapes(contours: tuple[consts.Contour]) -> list[bbox]:
         with the identified shape or {"shape": None} if the contour does not match any.
     """
     bbox_list: List[bbox] = []
-    print(len(contours))
     for contour in contours:
-        shape_type: chars.ODLCShape | None = classify_shape(contour)
-
+        shape_type: chars.ODLCShape | None = classify_shape(np.copy(contour))
         vertices: consts.Corners
         min_x: int
         min_y: int
@@ -259,19 +257,18 @@ def generate_polar_array(cnt: consts.Contour) -> PolarArray:
     x_avg: float
     y_avg: float
     x_avg, y_avg = np.mean(cnt, axis=0)[0]
-
-    cnt[:, 0, 0] -= int(y_avg)
-    cnt[:, 0, 1] -= int(x_avg)
+    cnt[:, 0, 0] -= int(x_avg)
+    cnt[:, 0, 1] -= int(y_avg)
 
     # Converts array of rectangular coordinates (x,y) to polar (angle, radius)
     pol_cnt: NDArray[Shape["*, 2"], Float64] = cartesian_array_to_polar(cnt)
     polar_sorted_indices = np.argsort(pol_cnt[:, 1])
     pol_cnt_sorted = pol_cnt[polar_sorted_indices]
-    _radius_array: NDArray[Shape["*"], Float64]
-    angle_array: NDArray[Shape["*"], Float64]
-    _radius_array, angle_array = condense_polar(pol_cnt_sorted)
+    radius_array: NDArray[Shape["*"], Float64]
+    _angle_array: NDArray[Shape["*"], Float64]
+    radius_array, _angle_array = condense_polar(pol_cnt_sorted)
 
-    return angle_array
+    return radius_array
 
 
 def condense_polar(
@@ -299,13 +296,14 @@ def condense_polar(
 
     # Linear interpolation to normalize all shapes to have the same number of data points
     # Create the scipy interpolation model and initializes the x-values to be uniformly spaced
-    new_angle: PolarArray = np.linspace(0, 2 * np.pi, num=NUM_STEPS)
+    new_angle: PolarArray = np.linspace(-np.pi, np.pi, num=NUM_STEPS)
     # Runs the interpolation model on the x values to generate
     # the cooresponding y-values to fit to the original data
     new_radius: PolarArray = scipy.interpolate.interp1d(
         angle, radius, kind="linear", fill_value="extrapolate"
     )(new_angle)
-    return new_angle, new_radius
+
+    return new_radius, new_angle
 
 
 def cartesian_to_polar(x: float, y: float) -> tuple[float, float]:
