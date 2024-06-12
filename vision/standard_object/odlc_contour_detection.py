@@ -94,7 +94,7 @@ def fetch_shape_contours(
 
     # finds the contour outlines of the combined thresholds
     contours, _hierarchy = cv2.findContours(
-        (white_thresh + black_thresh + saturation_thresh), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
+        (white_thresh + black_thresh + saturation_thresh), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE
     )
     all_contours: list[Contour] = []
     for contour in contours:
