@@ -9,11 +9,10 @@ from nptyping import NDArray, Shape, UInt8, Float32, Int32, Float64
 
 from vision.common.bounding_box import BoundingBox
 from vision.common.constants import Image
-from vision.common.crop import crop_image
 from vision.common.odlc_characteristics import ODLCColor, COLOR_RANGES
 
 
-def find_colors(image: Image, text_bounds: BoundingBox) -> tuple[ODLCColor, ODLCColor]:
+def find_colors(image: Image) -> tuple[ODLCColor, ODLCColor]:
     """
     Finds the colors of the shape and text based on the portion of the image bounded
     by the text bounds.
@@ -34,11 +33,8 @@ def find_colors(image: Image, text_bounds: BoundingBox) -> tuple[ODLCColor, ODLC
         text_color : ODLCColor
             the color of the text on the object
     """
-    # slice image around bounds of text
-    cropped_img: Image = crop_image(image, text_bounds)
-
     # kmeans clustering with k=2
-    kmeans_img: Image = run_kmeans(cropped_img)
+    kmeans_img: Image = run_kmeans(image)
 
     # get the 2 color values
     shape_color_val: NDArray[Shape["3"], UInt8]
@@ -296,4 +292,4 @@ if __name__ == "__main__":
     bbox = BoundingBox(vertices=((0, 0), (10, 0), (10, 10), (0, 10)), obj_type=ObjectType.TEXT)
 
     # run algorithm
-    print(find_colors(img, bbox))
+    print(find_colors(img))

@@ -10,10 +10,9 @@ import pytesseract
 
 from vision.common.bounding_box import ObjectType, BoundingBox, tlwh_to_vertices
 from vision.common.constants import Image
-from vision.common.crop import crop_image
 
 
-def get_odlc_text(starting_image: Image, odlc_bounds: BoundingBox) -> BoundingBox:
+def get_odlc_text(starting_image: Image) -> BoundingBox:
     """
     Detects text in the passed image at the location specified by the passed bounding box.
 
@@ -32,9 +31,7 @@ def get_odlc_text(starting_image: Image, odlc_bounds: BoundingBox) -> BoundingBo
         the bounds will all be zeros.
     """
 
-    cropped_img: Image = crop_image(starting_image, odlc_bounds)
-
-    preprocessed_img: Image = text_detection_pre_processing(cropped_img)
+    preprocessed_img: Image = text_detection_pre_processing(starting_image)
 
     detected_text: BoundingBox = text_detection(preprocessed_img)
 
@@ -57,7 +54,7 @@ def text_detection_pre_processing(unprocessed_img: Image) -> Image:
     """
 
     # Contrast and brightness
-    contrast_img: Image = cv2.convertScaleAbs(unprocessed_img, alpha=1.25, beta=-30)
+    contrast_img: Image = cv2.convertScaleAbs(unprocessed_img, alpha=1, beta=-30)
 
     # Grayscale
     grayscale_img: Image = cv2.cvtColor(contrast_img, cv2.COLOR_RGB2GRAY)
@@ -141,7 +138,7 @@ if __name__ == "__main__":
         ((740, 440), (820, 440), (820, 500), (740, 500)), ObjectType.STD_OBJECT
     )  # Coords for the A in the star of the 2022 image
 
-    read_text: BoundingBox = get_odlc_text(img, test_bounds)
+    read_text: BoundingBox = get_odlc_text(img)
 
     print("The following character was detected: " + read_text.get_attribute("text"))
     print("Text bounds are: " + str(read_text.vertices))

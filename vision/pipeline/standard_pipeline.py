@@ -8,6 +8,7 @@ import numpy as np
 from nptyping import NDArray, Shape, UInt8, Float32
 import vision.common.constants as consts
 
+from vision.common.crop import crop_image
 from vision.competition_inputs.bottle_reader import BottleData
 from vision.common.bounding_box import BoundingBox
 from vision.common.odlc_characteristics import ODLCColor
@@ -48,7 +49,7 @@ def find_standard_objects(
     """
 
     found_odlcs: list[BoundingBox] = []
-    contours: list[consts.Contour] = fetch_shape_contours(original_image, True, "contours.jpg")
+    contours: list[consts.Contour] = fetch_shape_contours(original_image)
     shapes: list[BoundingBox] = process_shapes(contours)
     shape: BoundingBox
     for shape in shapes:
@@ -120,7 +121,11 @@ def set_shape_attributes(
     if shape.get_attribute("shape") is None:
         return False
 
-    text_bounding: BoundingBox = get_odlc_text(original_image, shape)
+    odlc_img: consts.Image = crop_image(original_image, shape)
+
+    text_bounding: BoundingBox = get_odlc_text(odlc_img)
+
+    text_img: consts.Image = crop_image(odlc_img, text_bounding)
 
     # If no text is found, we can't do find_colors()
     if not text_bounding.get_attribute("text"):
@@ -130,7 +135,7 @@ def set_shape_attributes(
 
     shape_color: ODLCColor
     text_color: ODLCColor
-    shape_color, text_color = find_colors(original_image, text_bounding)
+    shape_color, text_color = find_colors(text_img)
 
     shape.set_attribute("shape_color", shape_color)
     shape.set_attribute("text_color", text_color)
