@@ -1,10 +1,11 @@
 """Runs the necessary Vision code during the flyover stage of competition"""
 
+import logging
 from typing import Callable
 from ctypes import c_bool
 from multiprocessing.sharedctypes import SynchronizedBase  # pylint: disable=unused-import
 
-import time
+import asyncio
 import cv2
 
 import vision.common.constants as consts
@@ -20,7 +21,7 @@ import vision.pipeline.emergent_pipeline as emg_obj
 import vision.pipeline.pipeline_utils as pipe_utils
 
 
-def flyover_pipeline(
+async def flyover_pipeline(
     camera_data_path: str, capture_status: "SynchronizedBase[c_bool]", output_path: str
 ) -> None:
     """
@@ -55,7 +56,7 @@ def flyover_pipeline(
     all_images_taken: c_bool = c_bool(False)
     while not all_images_taken:
         # Wait to check the file instead of spamming it
-        time.sleep(1)
+        await asyncio.sleep(1)
 
         # Check if all images have been taken
         all_images_taken = capture_status.value  # type: ignore
@@ -68,26 +69,32 @@ def flyover_pipeline(
         # Loop through all images in the json - if it hasn't been processed, process it
         for image_path in image_parameters.keys():
             if image_path not in completed_images:
+                logging.info("Processing image: %s", image_path)
+                full_image_path: str = f"images/{image_path}"
                 # Save the image path as completed so it isn't processed again
                 completed_images.append(image_path)
 
                 # Load the image to process
-                image: consts.Image = cv2.imread(image_path)
+                image: consts.Image = cv2.imread(full_image_path)
 
                 # Get the camera parameters from the loaded parameter file
                 camera_parameters: consts.CameraParameters = image_parameters[image_path]
 
                 # Append all discovered standard objects to the list of saved odlcs
-                saved_odlcs += std_obj.find_standard_objects(image, camera_parameters, image_path)
+                saved_odlcs += std_obj.find_standard_objects(
+                    image, camera_parameters, full_image_path
+                )
 
                 # Append all discovered humanoids to the list of saved humanoids
                 saved_humanoids += emg_obj.find_humanoids(
-                    emg_model, image, camera_parameters, image_path
+                    emg_model, image, camera_parameters, full_image_path
                 )
+                logging.info("Finished processing image: %s", image_path)
 
     # Sort and output the locations of all ODLCs
     sorted_odlcs: list[list[BoundingBox]] = std_obj.sort_odlcs(bottle_info, saved_odlcs)
     odlc_dict: consts.ODLCDict = std_obj.create_odlc_dict(sorted_odlcs)
+    logging.info("ODLCs found: %s", odlc_dict)
     pipe_utils.output_odlc_json(output_path, odlc_dict)
 
     # Pick the emergent object and save the image cropped in on the emergent object
