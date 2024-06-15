@@ -1,4 +1,6 @@
 """A class that contains all the needed camera functionality for the drone."""
+# pylint: disable=too-many-locals
+# Not worth to deal with this with the time crunch we are in
 
 import asyncio
 import json
@@ -176,13 +178,19 @@ class Camera:
                 file_path: str
                 _full_path, file_path = await self.capture_photo()
 
+                async for euler in drone.system.telemetry.attitude_euler():
+                    roll_deg: float = euler.roll_deg
+                    pitch_deg: float = euler.pitch_deg
+                    yaw_deg: float = euler.yaw_deg
+                    break
+
                 point: dict[str, dict[str, int | list[int | float] | float]] = {
                     file_path: {
                         "focal_length": 14,
                         "rotation_deg": [
-                            drone.system.offboard.Attitude.roll_deg,
-                            drone.system.offboard.Attitude.pitch_deg,
-                            drone.system.offboard.Attitude.yaw_deg,
+                            roll_deg,
+                            pitch_deg,
+                            yaw_deg,
                         ],
                         "drone_coordinates": [drone_lat, drone_long],
                         "altitude_f": drone_alt,
@@ -191,10 +199,17 @@ class Camera:
 
                 info.update(point)
 
-                with open("camera.json", "w", encoding="ascii") as camera:
-                    json.dump(info, camera)
+                current_photos: dict[str, dict[str, int | list[int | float] | float]] = {}
+                if os.path.exists("flight/data/camera.json"):
+                    with open("flight/data/camera.json", "r", encoding="utf8") as current_data:
+                        try:
+                            current_photos = json.load(current_data)
+                        except json.JSONDecodeError:
+                            pass
 
-            if take_photos:
+                with open("flight/data/camera.json", "w", encoding="ascii") as camera:
+                    json.dump(current_photos | info, camera)
+
                 await drone.system.action.set_maximum_speed(20)
             # tell machine to sleep to prevent constant polling, preventing battery drain
             await asyncio.sleep(1)
