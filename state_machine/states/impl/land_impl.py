@@ -41,7 +41,6 @@ async def run(self: Land) -> None:
                 break
             await asyncio.sleep(1)
 
-        await self.drone.system.action.disarm()
         logging.info("Land state complete.")
         return
     except asyncio.CancelledError as ex:
