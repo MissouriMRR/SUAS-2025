@@ -1,4 +1,5 @@
 """A class that contains all the needed camera functionality for the drone."""
+
 # pylint: disable=too-many-locals
 # Not worth to deal with this with the time crunch we are in
 
