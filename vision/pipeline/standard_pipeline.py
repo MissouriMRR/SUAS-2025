@@ -203,16 +203,16 @@ def get_bottle_index(shape: BoundingBox, bottle_info: dict[str, BottleData]) -> 
     for index, info in bottle_info.items():
         matches: int = 0
 
-        #if shape.get_attribute("text") == info["letter"]:
+        # if shape.get_attribute("text") == info["letter"]:
         #    matches += 1
 
         if shape.get_attribute("shape") == info["shape"]:
             matches += 1
 
-        #if shape.get_attribute("shape_color") == info["shape_color"]:
+        # if shape.get_attribute("shape_color") == info["shape_color"]:
         #    matches += 1
 
-        #if shape.get_attribute("text_color") == info["letter_color"]:
+        # if shape.get_attribute("text_color") == info["letter_color"]:
         #    matches += 1
 
         all_matches[int(index)] = matches
