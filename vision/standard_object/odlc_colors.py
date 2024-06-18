@@ -290,6 +290,3 @@ if __name__ == "__main__":
 
     # NOTE: to test an image, specify the bounds of the text in the image here
     bbox = BoundingBox(vertices=((0, 0), (10, 0), (10, 10), (0, 10)), obj_type=ObjectType.TEXT)
-
-    # run algorithm
-    print(find_colors(img))

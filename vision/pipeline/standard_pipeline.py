@@ -2,7 +2,6 @@
 
 from typing import TypeAlias
 
-import cv2
 import numpy as np
 
 from nptyping import NDArray, Shape, UInt8, Float32
@@ -14,7 +13,6 @@ from vision.common.bounding_box import BoundingBox
 from vision.common.odlc_characteristics import ODLCColor
 
 from vision.standard_object.odlc_contour_detection import fetch_shape_contours
-from vision.standard_object.odlc_image_processing import preprocess_std_odlc
 from vision.standard_object.odlc_classify_shape import process_shapes
 from vision.standard_object.odlc_text_detection import get_odlc_text
 from vision.standard_object.odlc_colors import find_colors
@@ -60,41 +58,6 @@ def find_standard_objects(
             found_odlcs.append(shape)
 
     return found_odlcs
-
-
-def iterate_find_contours(original_image: consts.Image) -> ContourHeirarchyList:
-    """
-    Gets the contours on multiple inputs for an image - hopefully one of the inputs will work
-
-    Parameters
-    ----------
-    original_image: Image
-        The image to find contours in
-
-    Returns
-    -------
-    contour_heirarchies_list: ContourHeirarchyList
-        The list of tuples of contours and heirarchies in the form (contour, heirarchy)
-    """
-
-    contour_heirarchies_list: ContourHeirarchyList = []
-
-    thresholds: tuple[int, int]
-    for thresholds in PROCESSING_THRESHOLDS:
-        processed_image: consts.ScImage = preprocess_std_odlc(
-            original_image, thresholds[0], thresholds[1]
-        )
-
-        # Get the contours in the image
-        contours: tuple[consts.Contour, ...]
-        hierarchy: consts.Hierarchy
-        contours, hierarchy = cv2.findContours(
-            processed_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
-        )
-
-        contour_heirarchies_list.append((contours, hierarchy))
-
-    return contour_heirarchies_list
 
 
 def set_shape_attributes(

@@ -19,9 +19,7 @@ def get_odlc_text(starting_image: Image) -> BoundingBox:
     Parameters
     ----------
     starting_image: Image
-        The image to detect the text on.
-    text_bounds: BoundingBox
-        The bounding box specifying where in the image to look for text.
+        The image to detect the text on, cropped to include only the object.
 
     Returns
     -------

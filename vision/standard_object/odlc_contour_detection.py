@@ -5,7 +5,7 @@
 import cv2
 import numpy as np
 
-from vision.common.constants import Contour, Hierarchy, Image
+from vision.common.constants import Contour, Hierarchy, Image, ScImage
 
 # Contour restriction constants
 MAX_CONTOUR_AREA: int = 10000
@@ -18,6 +18,7 @@ MIN_PROPORTIONAL_AREA: float = 0.4
 KERNEL_SIZE: cv2.typing.Size = (5, 5)
 MIN_WHITE_VALUE: int = 195
 MAX_BLACK_VALUE: int = 50
+BRIGHTNESS_THRESH = 60
 MIN_SATURATION_VALUE: int = 105
 MIN_DARK_SATURATION_VALUE: int = 125
 BLUR_IMG_WEIGHT: float = 0.7
@@ -48,23 +49,23 @@ def fetch_shape_contours(
             an array of all points that make up the contour
     """
 
-    img = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)  # converts image to HLS color format
+    hls_img = cv2.cvtColor(image, cv2.COLOR_RGB2HLS)  # converts image to HLS color format
 
     # Blur is added to the image to reduce noise and to make the image/grass more uniform
-    new_img = cv2.GaussianBlur(img, KERNEL_SIZE, sigmaX=0, sigmaY=0)  # blurs HLS image
+    new_img = cv2.GaussianBlur(hls_img, KERNEL_SIZE, sigmaX=0, sigmaY=0)  # blurs HLS image
 
-    img_brightness: np.ndarray[np.dtype[np.uint8], np.dtype[np.uint8]]
-    img_saturation: np.ndarray[np.dtype[np.uint8], np.dtype[np.uint8]]
+    img_brightness: ScImage
+    img_saturation: ScImage
 
     img_brightness = np.array(new_img[:, :, 1])  # reads lightness of image as 2D array
     img_saturation = np.array(new_img[:, :, 2])  # reads saturation of image as 2D array
 
     # slightly blends blurred and unblurred images of same type, prioritizing blurred images
     img_brightness = cv2.addWeighted(
-        img[:, :, 1], NORMAL_IMG_WEIGHT, img_brightness, BLUR_IMG_WEIGHT, 0
+        hls_img[:, :, 1], NORMAL_IMG_WEIGHT, img_brightness, BLUR_IMG_WEIGHT, 0
     )
     img_saturation = cv2.addWeighted(
-        img[:, :, 2], NORMAL_IMG_WEIGHT, img_saturation, BLUR_IMG_WEIGHT, 0
+        hls_img[:, :, 2], NORMAL_IMG_WEIGHT, img_saturation, BLUR_IMG_WEIGHT, 0
     )
 
     avg_brt: float = float(np.average(img_brightness))  # gets average brightness
@@ -74,7 +75,9 @@ def fetch_shape_contours(
     saturation_thresh: np.ndarray[np.dtype[np.uint8], np.dtype[np.uint8]]
 
     # Use higher saturation value if image is bright, lower if dark
-    saturation_value: int = MIN_SATURATION_VALUE if avg_brt > 60 else MIN_DARK_SATURATION_VALUE
+    saturation_value: int = (
+        MIN_SATURATION_VALUE if avg_brt > BRIGHTNESS_THRESH else MIN_DARK_SATURATION_VALUE
+    )
 
     # White threshold is used to find the brightest parts of the image
     # Black threshold is used to find the darkest parts of the image
@@ -99,6 +102,10 @@ def fetch_shape_contours(
     all_contours: list[Contour] = []
     for contour in contours:
         # gets rectangle bounding entire contour
+        _x_pos: int
+        _y_pos: int
+        width: int
+        height: int
         _x_pos, _y_pos, width, height = cv2.boundingRect(contour)
         area = float(cv2.contourArea(contour))
 
