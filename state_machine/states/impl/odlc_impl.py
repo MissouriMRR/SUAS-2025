@@ -75,7 +75,7 @@ async def run(self: ODLC) -> State:
         logging.error("ODLC state canceled")
         traceback.print_exc()
         raise ex
-    
+
     return Airdrop(self.drone, self.flight_settings)
 
 

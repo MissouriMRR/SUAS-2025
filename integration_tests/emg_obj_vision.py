@@ -1,7 +1,7 @@
 """Contains the emergent object integration test pipeline."""
 
-from ctypes import c_bool # pylint: disable=unused-import
-from multiprocessing.sharedctypes import SynchronizedBase # pylint: disable=unused-import
+from ctypes import c_bool  # pylint: disable=unused-import
+from multiprocessing.sharedctypes import SynchronizedBase  # pylint: disable=unused-import
 import time
 from typing import Callable
 

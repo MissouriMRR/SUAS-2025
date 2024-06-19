@@ -2,17 +2,17 @@
 
 from typing import TypeAlias
 
-import cv2
 import numpy as np
 
 from nptyping import NDArray, Shape, UInt8, Float32
 import vision.common.constants as consts
 
+from vision.common.crop import crop_image
 from vision.competition_inputs.bottle_reader import BottleData
 from vision.common.bounding_box import BoundingBox
 from vision.common.odlc_characteristics import ODLCColor
 
-from vision.standard_object.odlc_image_processing import preprocess_std_odlc
+from vision.standard_object.odlc_contour_detection import fetch_shape_contours
 from vision.standard_object.odlc_classify_shape import process_shapes
 from vision.standard_object.odlc_text_detection import get_odlc_text
 from vision.standard_object.odlc_colors import find_colors
@@ -60,41 +60,6 @@ def find_standard_objects(
     return found_odlcs
 
 
-def iterate_find_contours(original_image: consts.Image) -> ContourHeirarchyList:
-    """
-    Gets the contours on multiple inputs for an image - hopefully one of the inputs will work
-
-    Parameters
-    ----------
-    original_image: Image
-        The image to find contours in
-
-    Returns
-    -------
-    contour_heirarchies_list: ContourHeirarchyList
-        The list of tuples of contours and heirarchies in the form (contour, heirarchy)
-    """
-
-    contour_heirarchies_list: ContourHeirarchyList = []
-
-    thresholds: tuple[int, int]
-    for thresholds in PROCESSING_THRESHOLDS:
-        processed_image: consts.ScImage = preprocess_std_odlc(
-            original_image, thresholds[0], thresholds[1]
-        )
-
-        # Get the contours in the image
-        contours: tuple[consts.Contour, ...]
-        hierarchy: consts.Hierarchy
-        contours, hierarchy = cv2.findContours(
-            processed_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE
-        )
-
-        contour_heirarchies_list.append((contours, hierarchy))
-
-    return contour_heirarchies_list
-
-
 def set_shape_attributes(
     shape: BoundingBox,
     original_image: consts.Image,
@@ -125,6 +90,7 @@ def set_shape_attributes(
 
     shape_color: ODLCColor
     text_color: ODLCColor
+
     if not text_bounding.get_attribute("text"):
         # No text was found, we can only get the shape color
         _, shape_color = find_colors(odlc_img)
