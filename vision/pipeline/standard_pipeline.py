@@ -2,17 +2,17 @@
 
 from typing import TypeAlias
 
-import cv2
 import numpy as np
 
 from nptyping import NDArray, Shape, UInt8, Float32
 import vision.common.constants as consts
 
+from vision.common.crop import crop_image
 from vision.competition_inputs.bottle_reader import BottleData
 from vision.common.bounding_box import BoundingBox
 from vision.common.odlc_characteristics import ODLCColor
 
-from vision.standard_object.odlc_image_processing import preprocess_std_odlc
+from vision.standard_object.odlc_contour_detection import fetch_shape_contours
 from vision.standard_object.odlc_classify_shape import process_shapes
 from vision.standard_object.odlc_text_detection import get_odlc_text
 from vision.standard_object.odlc_colors import find_colors
@@ -47,58 +47,17 @@ def find_standard_objects(
     """
 
     found_odlcs: list[BoundingBox] = []
-
-    contour_heirarchies_list: ContourHeirarchyList = iterate_find_contours(original_image)
-
-    contours: tuple[consts.Contour]
-    _hierarchy: consts.Hierarchy
-    for contours, _hierarchy in contour_heirarchies_list:
-        shapes: list[BoundingBox] = process_shapes(contours)
-
-        shape: BoundingBox
-        for shape in shapes:
-            # Set the shape attributes by reference. If successful, keep the shape
-            if set_shape_attributes(shape, original_image) and pipe_utils.set_generic_attributes(
-                shape, image_path, original_image.shape, camera_parameters
-            ):
-                found_odlcs.append(shape)
+    contours: list[consts.Contour] = fetch_shape_contours(original_image)
+    shapes: list[BoundingBox] = process_shapes(contours)
+    shape: BoundingBox
+    for shape in shapes:
+        # Set the shape attributes by reference. If successful, keep the shape
+        if set_shape_attributes(shape, original_image) and pipe_utils.set_generic_attributes(
+            shape, image_path, original_image.shape, camera_parameters
+        ):
+            found_odlcs.append(shape)
 
     return found_odlcs
-
-
-def iterate_find_contours(original_image: consts.Image) -> ContourHeirarchyList:
-    """
-    Gets the contours on multiple inputs for an image - hopefully one of the inputs will work
-
-    Parameters
-    ----------
-    original_image: Image
-        The image to find contours in
-
-    Returns
-    -------
-    contour_heirarchies_list: ContourHeirarchyList
-        The list of tuples of contours and heirarchies in the form (contour, heirarchy)
-    """
-
-    contour_heirarchies_list: ContourHeirarchyList = []
-
-    thresholds: tuple[int, int]
-    for thresholds in PROCESSING_THRESHOLDS:
-        processed_image: consts.ScImage = preprocess_std_odlc(
-            original_image, thresholds[0], thresholds[1]
-        )
-
-        # Get the contours in the image
-        contours: tuple[consts.Contour, ...]
-        hierarchy: consts.Hierarchy
-        contours, hierarchy = cv2.findContours(
-            processed_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE
-        )
-
-        contour_heirarchies_list.append((contours, hierarchy))
-
-    return contour_heirarchies_list
 
 
 def set_shape_attributes(
@@ -125,7 +84,11 @@ def set_shape_attributes(
     if shape.get_attribute("shape") is None:
         return False
 
-    text_bounding: BoundingBox = get_odlc_text(original_image, shape)
+    odlc_img: consts.Image = crop_image(original_image, shape)
+
+    text_bounding: BoundingBox = get_odlc_text(odlc_img)
+
+    text_img: consts.Image = crop_image(odlc_img, text_bounding)
 
     # If no text is found, we can't do find_colors()
     if not text_bounding.get_attribute("text"):
@@ -135,7 +98,7 @@ def set_shape_attributes(
 
     shape_color: ODLCColor
     text_color: ODLCColor
-    shape_color, text_color = find_colors(original_image, text_bounding)
+    shape_color, text_color = find_colors(text_img)
 
     shape.set_attribute("shape_color", shape_color)
     shape.set_attribute("text_color", text_color)
