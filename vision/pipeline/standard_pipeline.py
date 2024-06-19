@@ -59,6 +59,7 @@ def find_standard_objects(
 
     return found_odlcs
 
+
 def set_shape_attributes(
     shape: BoundingBox,
     original_image: consts.Image,
