@@ -96,9 +96,9 @@ def fetch_shape_contours(
 
     # expands each threshold by 3 pixels in the x and y direction
     # to merge those in close proximity to one another
-    white_thresh = DILATION_KERNEL
-    black_thresh = DILATION_KERNEL
-    saturation_thresh = DILATION_KERNEL
+    white_thresh = cv2.dilate(saturation_thresh, DILATION_KERNEL)
+    black_thresh = cv2.dilate(saturation_thresh, DILATION_KERNEL)
+    saturation_thresh = cv2.dilate(saturation_thresh, DILATION_KERNEL)
 
     contours: list[Contour]
     _hierarchy: Hierarchy
