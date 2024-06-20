@@ -78,9 +78,6 @@ async def run(self: Airdrop) -> State:
 
             (cylinders[cylinder_num])["Loaded"] = False
 
-            with open("flight/data/bottles.json", "w", encoding="utf8") as output:
-                json.dump(cylinders, output)
-
             await asyncio.sleep(
                 15
             )  # This will need to be changed based on how long it takes to drop the bottle
@@ -90,6 +87,9 @@ async def run(self: Airdrop) -> State:
             # This means the location for the bottle loaded wasn't found.
             logging.warning("Info for bottle %s was not found. Skipping.", bottle)
             (cylinders[cylinder_num])["Loaded"] = False
+
+        with open("flight/data/bottles.json", "w", encoding="utf8") as output:
+            json.dump(cylinders, output)
 
         continue_run: bool = False
 
