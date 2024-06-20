@@ -60,7 +60,7 @@ def flyover_pipeline(camera_data_path: str) -> None:
 
             # Load the image to process
             print("Loading image")
-            image: consts.Image = cv2.imread(image_path)
+            image: consts.Image = cv2.imread(f"images/{image_path}")
 
             # Get the camera parameters from the loaded parameter file
             print("Loading camera parameters")
@@ -68,12 +68,14 @@ def flyover_pipeline(camera_data_path: str) -> None:
 
             # Append all discovered standard objects to the list of saved odlcs
             print("Finding standard objects")
-            saved_odlcs += std_obj.find_standard_objects(image, camera_parameters, image_path)
+            saved_odlcs += std_obj.find_standard_objects(
+                image, camera_parameters, f"images/{image_path}"
+            )
 
             # Append all discovered humanoids to the list of saved humanoids
             print("Finding emergent objects")
             saved_humanoids += emg_obj.find_humanoids(
-                emg_model, image, camera_parameters, image_path
+                emg_model, image, camera_parameters, f"images/{image_path}"
             )
 
     print("All images have been processed.")
