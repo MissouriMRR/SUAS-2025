@@ -25,7 +25,9 @@ async def run_test(_sim: bool, odlc_count: int = 5) -> None:
     drone: Drone = Drone()
     flight_settings: FlightSettings = FlightSettings(sim_flag=_sim, skip_waypoint=True)
     await drone.connect_drone()
-    asyncio.ensure_future(StateMachine(Start(drone, flight_settings), drone, flight_settings).run())
+    state_task: asyncio.Task[None] = asyncio.ensure_future(
+        StateMachine(Start(drone, flight_settings), drone, flight_settings).run()
+    )
 
     activated_odlcs: int = 0
     while activated_odlcs != odlc_count:
@@ -46,6 +48,8 @@ async def run_test(_sim: bool, odlc_count: int = 5) -> None:
             print(f"Error loading JSON file: {json_error}")
 
         await asyncio.sleep(10)
+    while state_task.done() is False:
+        await asyncio.sleep(1)
 
 
 if __name__ == "__main__":
