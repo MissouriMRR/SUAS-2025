@@ -8,11 +8,13 @@ import json
 import logging
 import os
 from datetime import datetime
-from pathlib import Path
 
 import gphoto2
 
+from flight.waypoint.calculate_distance import calculate_distance
 from state_machine.drone import Drone
+
+WAYPOINT_TOLERANCE: int = 1  # in meters
 
 
 class Camera:
@@ -107,13 +109,7 @@ class Camera:
                 return target_name, photo_name
 
     async def odlc_move_to(
-        self,
-        drone: Drone,
-        latitude: float,
-        longitude: float,
-        altitude: float,
-        fast_param: float,
-        take_photos: bool,
+        self, drone: Drone, latitude: float, longitude: float, altitude: float, take_photos: bool
     ) -> None:
         """
         This function takes in a latitude, longitude and altitude and autonomously
@@ -162,18 +158,16 @@ class Camera:
                 drone_long: float = position.longitude_deg
                 drone_alt: float = position.relative_altitude_m
 
-                #  accurately checks if location is reached and stops for 15 secs and then moves on.
-                if (
-                    (round(drone_lat, int(6 * fast_param)) == round(latitude, int(6 * fast_param)))
-                    and (
-                        round(drone_long, int(6 * fast_param))
-                        == round(longitude, int(6 * fast_param))
-                    )
-                    and (round(drone_alt, 1) == round(altitude, 1))
-                ):
+                total_distance: float = calculate_distance(
+                    drone_lat, drone_long, drone_alt, latitude, longitude, altitude
+                )
+
+                if total_distance < WAYPOINT_TOLERANCE:  # 6 meters = 19.685 feet.
                     location_reached = True
-                    logging.info("arrived")
+                    logging.info("Arrived %sm away from waypoint", total_distance)
                     break
+
+            await asyncio.sleep(2)
 
             if take_photos:
                 _full_path: str
@@ -188,7 +182,7 @@ class Camera:
 
                 point: dict[str, dict[str, int | list[int | float] | float]] = {
                     file_path: {
-                        "focal_length": 14,
+                        "focal_length": 24,
                         "rotation_deg": [
                             roll_deg,
                             pitch_deg,
@@ -212,7 +206,7 @@ class Camera:
                 with open("flight/data/camera.json", "w", encoding="ascii") as camera:
                     json.dump(current_photos | info, camera)
 
-                await drone.system.action.set_maximum_speed(20)
+                await drone.system.action.set_maximum_speed(13.41)
             # tell machine to sleep to prevent constant polling, preventing battery drain
             await asyncio.sleep(1)
         return

@@ -156,7 +156,6 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
                     gps_data["odlc_waypoints"][point].latitude,
                     gps_data["odlc_waypoints"][point].longitude,
                     gps_data["odlc_altitude"],
-                    5 / 6,
                     take_photos,
                 )
             else:
