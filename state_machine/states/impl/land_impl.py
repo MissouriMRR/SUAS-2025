@@ -3,6 +3,7 @@
 import asyncio
 import logging
 
+from mavsdk.action import ActionError
 from mavsdk.telemetry import FlightMode
 from state_machine.state_tracker import update_state, update_drone, update_flight_settings
 from state_machine.states.land import Land
@@ -40,6 +41,11 @@ async def run(self: Land) -> None:
             if flight_mode != FlightMode.RETURN_TO_LAUNCH:
                 break
             await asyncio.sleep(1)
+
+        try:
+            await self.drone.system.action.disarm()
+        except ActionError:
+            logging.warning("Unable to disarm, may already be disarmed.")
 
         logging.info("Land state complete.")
         return

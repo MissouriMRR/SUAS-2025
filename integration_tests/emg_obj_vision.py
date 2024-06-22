@@ -1,5 +1,6 @@
 """Contains the emergent object integration test pipeline."""
 
+# This needs to be disabled because the types are used for hinting but its not registered as used
 from ctypes import c_bool  # pylint: disable=unused-import
 from multiprocessing.sharedctypes import SynchronizedBase  # pylint: disable=unused-import
 import time

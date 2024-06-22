@@ -162,7 +162,7 @@ class Camera:
                     drone_lat, drone_long, drone_alt, latitude, longitude, altitude
                 )
 
-                if total_distance < WAYPOINT_TOLERANCE:  # 6 meters = 19.685 feet.
+                if total_distance < WAYPOINT_TOLERANCE:  # within 1 meter of the point
                     location_reached = True
                     logging.info("Arrived %sm away from waypoint", total_distance)
                     break
