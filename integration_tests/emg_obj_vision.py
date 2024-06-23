@@ -1,7 +1,8 @@
 """Contains the emergent object integration test pipeline."""
 
-from ctypes import c_bool
-from multiprocessing.sharedctypes import SynchronizedBase
+# This needs to be disabled because the types are used for hinting but its not registered as used
+from ctypes import c_bool  # pylint: disable=unused-import
+from multiprocessing.sharedctypes import SynchronizedBase  # pylint: disable=unused-import
 import time
 from typing import Callable
 
@@ -20,7 +21,7 @@ import vision.pipeline.pipeline_utils as pipe_utils
 
 # Disable duplicate code checking because the flyover pipeline is similar
 # pylint: disable=duplicate-code
-def emg_integration_pipeline(
+async def emg_integration_pipeline(
     camera_data_path: str, capture_status: "SynchronizedBase[c_bool]", output_path: str
 ) -> None:
     """

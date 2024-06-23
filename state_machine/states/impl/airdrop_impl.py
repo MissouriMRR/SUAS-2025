@@ -64,25 +64,32 @@ async def run(self: Airdrop) -> State:
             logging.warning("No bottles are loaded?")
             return Land(self.drone, self.flight_settings)
 
-        bottle_loc: dict[str, float] = bottle_locations[str(bottle)]
+        try:
+            bottle_loc: dict[str, float] = bottle_locations[str(bottle)]
 
-        # Move to the bottle with priority
-        await move_to(self.drone.system, bottle_loc["latitude"], bottle_loc["longitude"], 80)
-        logging.info("Starting bottle drop %s. Wait for drone to be stationary then drop.", bottle)
-        # If bottle drop is automatic these would be used
-        # if self.drone.address == "serial:///dev/ttyFTDI:921600":
-        #   await airdrop.drop_bottle(servo_num)
+            # Move to the bottle with priority
+            await move_to(self.drone.system, bottle_loc["latitude"], bottle_loc["longitude"], 80)
+            logging.info(
+                "Starting bottle drop %s. Wait for drone to be stationary then drop.", bottle
+            )
+            # If bottle drop is automatic these would be used
+            # if self.drone.address == "serial:///dev/ttyFTDI:921600":
+            #   await airdrop.drop_bottle(servo_num)
 
-        (cylinders[cylinder_num])["Loaded"] = False
+            (cylinders[cylinder_num])["Loaded"] = False
+
+            await asyncio.sleep(
+                15
+            )  # This will need to be changed based on how long it takes to drop the bottle
+
+            logging.info("-- Airdrop done!")
+        except KeyError:
+            # This means the location for the bottle loaded wasn't found.
+            logging.warning("Info for bottle %s was not found. Skipping.", bottle)
+            (cylinders[cylinder_num])["Loaded"] = False
 
         with open("flight/data/bottles.json", "w", encoding="utf8") as output:
             json.dump(cylinders, output)
-
-        await asyncio.sleep(
-            15
-        )  # This will need to be changed based on how long it takes to drop the bottle
-
-        logging.info("-- Airdrop done!")
 
         continue_run: bool = False
 

@@ -169,7 +169,7 @@ def compare_based_on_peaks(polar_array: PolarArray) -> chars.ODLCShape | None:
     peaks = signal.find_peaks(polar_array, prominence=PROMINENCE)[0]
     num_peaks: int
     num_peaks = len(peaks)
-    odlc_guess: chars.ODLCShape
+    odlc_guess: chars.ODLCShape | None
 
     # If the minimum value is greater than Maximum Radius
     # (e.g.. data may change), then it is a circle
@@ -223,6 +223,12 @@ def compare_based_on_peaks(polar_array: PolarArray) -> chars.ODLCShape | None:
             odlc_guess = chars.ODLCShape.STAR
         else:
             odlc_guess = chars.ODLCShape.PENTAGON
+
+    else:
+        # The number of peaks is outside of our range of detection
+        # We will just assume there is no shape
+        return None
+
     # This else states that is the upper 15% of a shape has 8 peaks
     # when prominence is decreased, it is likely a cross
     # This was added because many crosses were not showing 2 peaks per

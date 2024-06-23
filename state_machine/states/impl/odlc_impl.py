@@ -7,6 +7,7 @@ import json
 from multiprocessing import Value
 from multiprocessing.sharedctypes import SynchronizedBase
 from pathlib import Path
+import traceback
 
 from flight.camera import Camera
 
@@ -57,26 +58,25 @@ async def run(self: ODLC) -> State:
             vision_odlc_logic(capture_status, self.flight_settings)
         )
 
-        asyncio.ensure_future(find_odlcs(self, capture_status))
-        try:
-            logging.info("Starting check for task completion")
+        flight_task: asyncio.Task[None] = asyncio.ensure_future(find_odlcs(self, capture_status))
 
-            while not vision_task.done():
-                await asyncio.sleep(0.25)
+        logging.info("Starting check for task completion")
 
-            logging.info("ODLC scan complete. State completing...")
-        except KeyboardInterrupt:
-            logging.critical(
-                "Keyboard interrupt detected. Killing state machine and landing drone."
-            )
-        finally:
-            vision_task.cancel()
-        return Airdrop(self.drone, self.flight_settings)
+        while not vision_task.done():
+            await asyncio.sleep(0.25)
+
+        while not flight_task.done():
+            await asyncio.sleep(0.25)
+
+        logging.info("ODLC scan complete. State completing...")
+        vision_task.cancel()
+        flight_task.cancel()
     except asyncio.CancelledError as ex:
         logging.error("ODLC state canceled")
+        traceback.print_exc()
         raise ex
-    finally:
-        pass
+
+    return Airdrop(self.drone, self.flight_settings)
 
 
 async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> None:
@@ -92,100 +92,93 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
     -----
     This method is responsible for initiating the ODLC scanning process of the drone.
     """
-    try:
-        logging.info("ODLC")
 
-        # Initialize the camera
-        if not self.flight_settings.sim_flag:
-            camera: Camera | None = Camera()
-        else:
-            camera = None
+    # Initialize the camera
+    if not self.flight_settings.sim_flag:
+        camera: Camera | None = Camera()
+    else:
+        camera = None
 
-        # The waypoint values stored in waypoint_data.json are all that are needed
-        # to traverse the whole odlc drop location
-        # because it is a small rectangle
-        # The first waypoint is the midpoint of
-        # the left side of the rectangle(one of the short sides), the second point is the
-        # midpoint of the right side of the rectangle(other short side),
-        # and the third point is the top left corner of the rectangle
-        # it goes there for knowing where the drone ends to travel to each of the drop locations,
-        # the altitude is locked at 100 because
-        # we want the drone to stay level and the camera to view the whole odlc boundary
-        # the altitude 100 feet was chosen to cover the whole odlc boundary
-        # because the boundary is 70ft by 360ft the fov of the camera
-        # is vertical 52.1 degrees and horizontal 72.5,
-        # so using the minimum length side of the photo the coverage would be 90 feet allowing
-        # 10 feet overlap on both sides
+    # The waypoint values stored in waypoint_data.json are all that are needed
+    # to traverse the whole odlc drop location
+    # because it is a small rectangle
+    # The first waypoint is the midpoint of
+    # the left side of the rectangle(one of the short sides), the second point is the
+    # midpoint of the right side of the rectangle(other short side),
+    # and the third point is the top left corner of the rectangle
+    # it goes there for knowing where the drone ends to travel to each of the drop locations,
+    # the altitude is locked at 100 because
+    # we want the drone to stay level and the camera to view the whole odlc boundary
+    # the altitude 100 feet was chosen to cover the whole odlc boundary
+    # because the boundary is 70ft by 360ft the fov of the camera
+    # is vertical 52.1 degrees and horizontal 72.5,
+    # so using the minimum length side of the photo the coverage would be 90 feet allowing
+    # 10 feet overlap on both sides
 
-        gps_data: GPSData = extract_gps(self.flight_settings.path_data_path)
+    gps_data: GPSData = extract_gps(self.flight_settings.path_data_path)
 
-        loops: int = 0  # Max amount of loops before giving up
-        while loops <= 5:
-            logging.info("Starting odlc zone flyover")
-            loops += 1
+    loops: int = 0  # Max amount of loops before giving up
+    while loops <= 0:
+        logging.info("Starting odlc zone flyover")
+        loops += 1
 
-            # traverses the 3 waypoints starting at the midpoint on left to midpoint on the right
-            # then to the top left corner at the rectangle
-            point: int
-            for point in range(3):
-                take_photos: bool = False
+        # traverses the 3 waypoints starting at the midpoint on left to midpoint on the right
+        # then to the top left corner at the rectangle
+        point: int
+        for point in range(3):
+            take_photos: bool = True
 
-                if point == 0:
-                    logging.info("Moving to the center of the west boundary")
-                elif point == 1:
-                    # starts taking photos at a .5 second interval because we want
-                    # to get multiple photos of the boundary so there is overlap and
-                    # the speed of the drone should be 20 m/s which is 64 feet/s which means
-                    # it will traverse the length of the boundary (360 ft) in 6 sec
-                    # and that means with the shortest length of photos
-                    #  being taken depending on rotation
-                    # would be 90 feet and we want to take multiple photos
-                    # so we would need a minimum of 4 photos to cover
-                    #  the whole boundary and we want multiple,
-                    # so using .5 seconds between each photo allows
-                    # it to take a minimum of 12 photos of
-                    #  the odlc boundary which will capture the whole area
+            if point == 0:
+                logging.info("Moving to the center of the west boundary")
+            elif point == 1:
+                # starts taking photos at a .5 second interval because we want
+                # to get multiple photos of the boundary so there is overlap and
+                # the speed of the drone should be 20 m/s which is 64 feet/s which means
+                # it will traverse the length of the boundary (360 ft) in 6 sec
+                # and that means with the shortest length of photos
+                #  being taken depending on rotation
+                # would be 90 feet and we want to take multiple photos
+                # so we would need a minimum of 4 photos to cover
+                #  the whole boundary and we want multiple,
+                # so using .5 seconds between each photo allows
+                # it to take a minimum of 12 photos of
+                #  the odlc boundary which will capture the whole area
 
-                    logging.info("Moving to the center of the east boundary")
-                    take_photos = True
+                logging.info("Moving to the center of the east boundary")
+                take_photos = True
 
-                elif point == 2:
-                    capture_status.value = c_bool(True)  # type: ignore
-                    logging.info("Moving to the north west corner")
+            elif point == 2:
+                logging.info("Moving to the north west corner")
 
-                if camera:
-                    await camera.odlc_move_to(
-                        self.drone,
-                        gps_data["odlc_waypoints"][point].latitude,
-                        gps_data["odlc_waypoints"][point].longitude,
-                        gps_data["odlc_altitude"],
-                        5 / 6,
-                        take_photos,
-                    )
-                else:
-                    await move_to(
-                        self.drone.system,
-                        gps_data["odlc_waypoints"][point].latitude,
-                        gps_data["odlc_waypoints"][point].longitude,
-                        gps_data["odlc_altitude"],
-                    )
+            if camera:
+                await camera.odlc_move_to(
+                    self.drone,
+                    gps_data["odlc_waypoints"][point].latitude,
+                    gps_data["odlc_waypoints"][point].longitude,
+                    gps_data["odlc_altitude"],
+                    take_photos,
+                )
+            else:
+                await move_to(
+                    self.drone.system,
+                    gps_data["odlc_waypoints"][point].latitude,
+                    gps_data["odlc_waypoints"][point].longitude,
+                    gps_data["odlc_altitude"],
+                )
 
-            if self.flight_settings.standard_object_count <= 0:
-                break
+        if self.flight_settings.standard_object_count <= 0:
+            break
 
-            with open("flight/data/output.json", encoding="ascii") as output:
-                airdrop_dict = json.load(output)
-                airdrops: int = len(airdrop_dict)
+        with open("flight/data/output.json", encoding="ascii") as output:
+            airdrop_dict = json.load(output)
+            airdrops: int = len(airdrop_dict)
 
-            if airdrops >= self.flight_settings.standard_object_count:
-                break
+        if airdrops >= self.flight_settings.standard_object_count:
+            break
 
-        self.drone.odlc_scan = False
-    except asyncio.CancelledError as ex:
-        logging.error("ODLC state canceled")
-        raise ex
-    finally:
-        pass
+    capture_status.value = c_bool(True)  # type: ignore
+    self.drone.odlc_scan = False
+    logging.info("ODLC scan complete")
 
 
 async def vision_odlc_logic(
@@ -211,27 +204,19 @@ async def vision_odlc_logic(
     This method is responsible for initiating the ODLC scanning process of the drone
     and transitioning it to the Airdrop state.
     """
-    try:
-        camera_data_filename: str = "flight/data/camera.json"
+    camera_data_filename: str = "flight/data/camera.json"
 
-        pipeline = (
-            emg_integration_pipeline
-            if flight_settings.standard_object_count == 0
-            else flyover_pipeline
-        )
+    pipeline = (
+        emg_integration_pipeline if flight_settings.standard_object_count == 0 else flyover_pipeline
+    )
 
-        # Wait until camera.json exists
-        logging.info("Waiting for %s to exist", camera_data_filename)
-        while not Path(camera_data_filename).is_file():
-            await asyncio.sleep(1)
-        logging.info("Camera data file found.")
+    # Wait until camera.json exists
+    logging.info("Waiting for %s to exist", camera_data_filename)
+    while not Path(camera_data_filename).is_file():
+        await asyncio.sleep(1)
+    logging.info("Camera data file found.")
 
-        pipeline("flight/data/camera.json", capture_status, "flight/data/output.json")
-    except asyncio.CancelledError as ex:
-        logging.error("ODLC state canceled")
-        raise ex
-    finally:
-        pass
+    await pipeline("flight/data/camera.json", capture_status, "flight/data/output.json")
 
 
 # Setting the run_callable attribute of the ODLC class to the run function

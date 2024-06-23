@@ -1,15 +1,20 @@
 """A class that contains all the needed camera functionality for the drone."""
 
+# pylint: disable=too-many-locals
+# Not worth to deal with this with the time crunch we are in
+
 import asyncio
 import json
 import logging
 import os
 from datetime import datetime
-from pathlib import Path
 
 import gphoto2
 
+from flight.waypoint.calculate_distance import calculate_distance
 from state_machine.drone import Drone
+
+WAYPOINT_TOLERANCE: int = 1  # in meters
 
 
 class Camera:
@@ -104,13 +109,7 @@ class Camera:
                 return target_name, photo_name
 
     async def odlc_move_to(
-        self,
-        drone: Drone,
-        latitude: float,
-        longitude: float,
-        altitude: float,
-        fast_param: float,
-        take_photos: bool,
+        self, drone: Drone, latitude: float, longitude: float, altitude: float, take_photos: bool
     ) -> None:
         """
         This function takes in a latitude, longitude and altitude and autonomously
@@ -159,31 +158,35 @@ class Camera:
                 drone_long: float = position.longitude_deg
                 drone_alt: float = position.relative_altitude_m
 
-                #  accurately checks if location is reached and stops for 15 secs and then moves on.
-                if (
-                    (round(drone_lat, int(6 * fast_param)) == round(latitude, int(6 * fast_param)))
-                    and (
-                        round(drone_long, int(6 * fast_param))
-                        == round(longitude, int(6 * fast_param))
-                    )
-                    and (round(drone_alt, 1) == round(altitude, 1))
-                ):
+                total_distance: float = calculate_distance(
+                    drone_lat, drone_long, drone_alt, latitude, longitude, altitude
+                )
+
+                if total_distance < WAYPOINT_TOLERANCE:  # within 1 meter of the point
                     location_reached = True
-                    logging.info("arrived")
+                    logging.info("Arrived %sm away from waypoint", total_distance)
                     break
+
+            await asyncio.sleep(2)
 
             if take_photos:
                 _full_path: str
                 file_path: str
                 _full_path, file_path = await self.capture_photo()
 
+                async for euler in drone.system.telemetry.attitude_euler():
+                    roll_deg: float = euler.roll_deg
+                    pitch_deg: float = euler.pitch_deg
+                    yaw_deg: float = euler.yaw_deg
+                    break
+
                 point: dict[str, dict[str, int | list[int | float] | float]] = {
                     file_path: {
-                        "focal_length": 14,
+                        "focal_length": 24,
                         "rotation_deg": [
-                            drone.system.offboard.Attitude.roll_deg,
-                            drone.system.offboard.Attitude.pitch_deg,
-                            drone.system.offboard.Attitude.yaw_deg,
+                            roll_deg,
+                            pitch_deg,
+                            yaw_deg,
                         ],
                         "drone_coordinates": [drone_lat, drone_long],
                         "altitude_f": drone_alt,
@@ -192,22 +195,18 @@ class Camera:
 
                 info.update(point)
 
-                if not Path("flight/data/camera.json").is_file():
-                    with open("flight/data/camera.json", "x", encoding="ascii") as camerajson:
-                        json.dump(info, camerajson)
-                elif Path("flight/data/camera.json").stat().st_size == 0:
-                    with open("flight/data/camera.json", "w", encoding="ascii") as camerajson:
-                        json.dump(info, camerajson)
-                else:
-                    with open("flight/data/camera.json", mode="r", encoding="utf-8") as camerajson:
-                        file_data: dict[str, dict[str, int | list[int | float] | float]] = (
-                            json.load(camerajson)
-                        )
-                    with open("flight/data/camera.json", "w", encoding="ascii") as camerajson:
-                        json.dump(file_data | info, camerajson)
+                current_photos: dict[str, dict[str, int | list[int | float] | float]] = {}
+                if os.path.exists("flight/data/camera.json"):
+                    with open("flight/data/camera.json", "r", encoding="utf8") as current_data:
+                        try:
+                            current_photos = json.load(current_data)
+                        except json.JSONDecodeError:
+                            pass
 
-            if take_photos:
-                await drone.system.action.set_maximum_speed(20)
+                with open("flight/data/camera.json", "w", encoding="ascii") as camera:
+                    json.dump(current_photos | info, camera)
+
+                await drone.system.action.set_maximum_speed(13.41)
             # tell machine to sleep to prevent constant polling, preventing battery drain
             await asyncio.sleep(1)
         return

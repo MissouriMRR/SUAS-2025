@@ -47,7 +47,7 @@ def find_standard_objects(
     """
 
     found_odlcs: list[BoundingBox] = []
-    contours: list[consts.Contour] = fetch_shape_contours(original_image)
+    contours: list[consts.Contour] = fetch_shape_contours(original_image, True, "contours.jpg")
     shapes: list[BoundingBox] = process_shapes(contours)
     shape: BoundingBox
     for shape in shapes:
@@ -88,20 +88,21 @@ def set_shape_attributes(
 
     text_bounding: BoundingBox = get_odlc_text(odlc_img)
 
-    text_img: consts.Image = crop_image(odlc_img, text_bounding)
-
-    # If no text is found, we can't do find_colors()
-    if not text_bounding.get_attribute("text"):
-        return False
-
-    shape.set_attribute("text", text_bounding.get_attribute("text"))
-
     shape_color: ODLCColor
     text_color: ODLCColor
-    shape_color, text_color = find_colors(text_img)
 
-    shape.set_attribute("shape_color", shape_color)
-    shape.set_attribute("text_color", text_color)
+    if not text_bounding.get_attribute("text"):
+        # No text was found, we can only get the shape color
+        _, shape_color = find_colors(odlc_img)
+        shape.set_attribute("shape_color", shape_color)
+    else:
+        # Text found, we can try to look for both colors
+        shape.set_attribute("text", text_bounding.get_attribute("text"))
+        text_img: consts.Image = crop_image(odlc_img, text_bounding)
+        shape_color, text_color = find_colors(text_img)
+
+        shape.set_attribute("shape_color", shape_color)
+        shape.set_attribute("text_color", text_color)
 
     return True
 
@@ -168,8 +169,8 @@ def get_bottle_index(shape: BoundingBox, bottle_info: dict[str, BottleData]) -> 
     for index, info in bottle_info.items():
         matches: int = 0
 
-        if shape.get_attribute("text") == info["letter"]:
-            matches += 1
+        # if shape.get_attribute("text") == info["letter"]:
+        #    matches += 1
 
         if shape.get_attribute("shape") == info["shape"]:
             matches += 1
@@ -177,14 +178,14 @@ def get_bottle_index(shape: BoundingBox, bottle_info: dict[str, BottleData]) -> 
         if shape.get_attribute("shape_color") == info["shape_color"]:
             matches += 1
 
-        if shape.get_attribute("text_color") == info["letter_color"]:
-            matches += 1
+        # if shape.get_attribute("text_color") == info["letter_color"]:
+        #    matches += 1
 
         all_matches[int(index)] = matches
 
     # This if statement ensures that bad matches are ignored, and standards can be lowered.
     #   Still takes the best match, but if none are good enough they will be ignored.
-    if all_matches.max() > 2:
+    if all_matches.max() > 0:
         # Gets the index of the first bottle with the most matches.
         # First [0] takes the first dimension, second [0] takes the first element
         return np.where(all_matches == all_matches.max())[0][0]
