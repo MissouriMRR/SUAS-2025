@@ -19,9 +19,9 @@ MIN_PROPORTIONAL_AREA: float = 0.4
 KERNEL_SIZE: cv2.typing.Size = (5, 5)
 DILATION_KERNEL: NDArray[Shape["3, 3"], UInt8] = np.ones([3, 3], np.uint8)
 MIN_WHITE_VALUE: int = 195
-MAX_BLACK_VALUE: int = 50
+MAX_BLACK_VALUE: int = 0
 BRIGHTNESS_THRESH = 60
-MIN_SATURATION_VALUE: int = 105
+MIN_SATURATION_VALUE: int = 185
 MIN_DARK_SATURATION_VALUE: int = 125
 BLUR_IMG_WEIGHT: float = 0.7
 NORMAL_IMG_WEIGHT: float = 0.3
@@ -96,8 +96,8 @@ def fetch_shape_contours(
 
     # expands each threshold by 3 pixels in the x and y direction
     # to merge those in close proximity to one another
-    white_thresh = cv2.dilate(saturation_thresh, DILATION_KERNEL)
-    black_thresh = cv2.dilate(saturation_thresh, DILATION_KERNEL)
+    white_thresh = cv2.dilate(white_thresh, DILATION_KERNEL)
+    # black_thresh = cv2.dilate(black_thresh, DILATION_KERNEL)
     saturation_thresh = cv2.dilate(saturation_thresh, DILATION_KERNEL)
 
     contours: list[Contour]
@@ -105,7 +105,7 @@ def fetch_shape_contours(
 
     # finds the contour outlines of the combined thresholds
     contours, _hierarchy = cv2.findContours(
-        (white_thresh + black_thresh + saturation_thresh), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE
+        (white_thresh + saturation_thresh), cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE
     )
     all_contours: list[Contour] = []
 
@@ -141,6 +141,10 @@ def fetch_shape_contours(
         for contour in all_contours:
             cv2.drawContours(image, [contour], 0, (0, 0, 255), 2)
         cv2.imwrite(resulting_file_name, image)
+        cv2.imwrite("thresh_white.jpg", white_thresh)
+        cv2.imwrite("thresh_black.jpg", black_thresh)
+        cv2.imwrite("thresh_saturation.jpg", saturation_thresh)
+        cv2.imwrite("thresh_combined.jpg", white_thresh + black_thresh + saturation_thresh)
 
     # returns a filtered list of contours
     return all_contours
