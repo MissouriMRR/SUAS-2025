@@ -122,7 +122,6 @@ def pixel_vector(
     fov_h: float
     fov_v: float
     fov_h, fov_v = focal_length_to_fovs(focal_length)
-
     vector: Vector = camera_vector(
         pixel_angle(fov_h, pixel[0] / image_shape[1]),
         pixel_angle(fov_v, pixel[1] / image_shape[0]),
@@ -193,7 +192,7 @@ def get_fov(focal_length: float, sensor_size: float) -> float:
         The field of view in radians
     """
 
-    return 2 * np.arctan(sensor_size / (2 * focal_length))
+    return 2 * np.arctan(sensor_size / (focal_length))
 
 
 def camera_vector(h_angle: float, v_angle: float) -> Vector:
