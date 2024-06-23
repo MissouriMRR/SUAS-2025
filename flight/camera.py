@@ -188,7 +188,7 @@ class Camera:
                             pitch_deg,
                             yaw_deg,
                         ],
-                        "drone_coordinates": [drone_lat, drone_long],
+                        "drone_coordinates": [latitude, longitude],
                         "altitude_f": drone_alt,
                     }
                 }
