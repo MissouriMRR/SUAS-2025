@@ -121,8 +121,50 @@ GPSData = TypedDict(
         "boundary_points_utm": list[BoundaryPointUtm],
         "altitude_limits": list[int],
         "odlc_altitude": int,
+        "odlc_heading": float,
     },
 )
+
+
+def format_waypoints(
+    json_data: dict[str, Any], fz_num: int, fz_letter: str
+) -> tuple[list[Waypoint], list[WaypointUtm]]:
+    """Store the lat/lon/altitude for each point into the Waypoints/BoundaryPoint namedtuple
+    Appends each point into a list to be able to packed into the output
+
+    Parameters
+    ----------
+    json_data : dict[str, Any]
+        The JSON data from the file
+    fz_num : int
+        Forced zone number
+    fz_letter : str
+        Forced zone letter
+
+    Returns
+    -------
+    tuple[list[Waypoint], list[WaypointUtm]]
+        waypoints : list[Waypoint]
+            The waypoints in lat/lon/alt format
+        waypoints_utm : list[WaypointUtm]
+            The waypoints in UTM format
+    """
+    waypoints: list[Waypoint] = []
+    waypoints_utm: list[WaypointUtm] = []
+    waypoint: dict[str, float]
+    for waypoint in json_data["waypoints"]:
+        latitude: float = waypoint["latitude"]
+        longitude: float = waypoint["longitude"]
+        altitude: float = waypoint["altitude"]
+
+        waypoints.append(Waypoint(latitude, longitude, altitude))
+        utm_coords: tuple[float, float, int, str] = utm.from_latlon(
+            latitude, longitude, fz_num, fz_letter
+        )
+        full_waypoint_utm: WaypointUtm = WaypointUtm(*utm_coords, altitude)
+        waypoints_utm.append(full_waypoint_utm)
+
+    return waypoints, waypoints_utm
 
 
 def extract_gps(path: str) -> GPSData:
@@ -215,20 +257,7 @@ def extract_gps(path: str) -> GPSData:
         json_data["flyzones"]["boundaryPoints"][0]["longitude"],
     )
 
-    # Store the lat/lon/altitude for each point into the Waypoints/BoundaryPoint namedtuple
-    # Appends each point into a list to be able to packed into the output
-    waypoint: dict[str, float]
-    for waypoint in json_data["waypoints"]:
-        latitude: float = waypoint["latitude"]
-        longitude: float = waypoint["longitude"]
-        altitude: float = waypoint["altitude"]
-
-        waypoints.append(Waypoint(latitude, longitude, altitude))
-        utm_coords: tuple[float, float, int, str] = utm.from_latlon(
-            latitude, longitude, forced_zone_number, forced_zone_letter
-        )
-        full_waypoint_utm: WaypointUtm = WaypointUtm(*utm_coords, altitude)
-        waypoints_utm.append(full_waypoint_utm)
+    waypoints, waypoints_utm = format_waypoints(json_data, forced_zone_number, forced_zone_letter)
 
     odlc_waypoint: dict[str, float]
     for odlc_waypoint in json_data["odlcWaypoints"]:
@@ -259,6 +288,7 @@ def extract_gps(path: str) -> GPSData:
             json_data["flyzones"]["altitudeMax"],
         ],
         "odlc_altitude": json_data["odlcAltitude"],
+        "odlc_heading": json_data["odlcHeading"],
     }
     return waypoint_data
 
