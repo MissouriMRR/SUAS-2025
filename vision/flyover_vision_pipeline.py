@@ -9,7 +9,6 @@ import asyncio
 import cv2
 
 import vision.common.constants as consts
-from vision.common.crop import crop_image
 
 from vision.competition_inputs.bottle_reader import load_bottle_info, BottleData
 from vision.common.bounding_box import BoundingBox
@@ -94,13 +93,19 @@ async def flyover_pipeline(
     # Sort and output the locations of all ODLCs
     sorted_odlcs: list[list[BoundingBox]] = std_obj.sort_odlcs(bottle_info, saved_odlcs)
     odlc_dict: consts.ODLCDict = std_obj.create_odlc_dict(sorted_odlcs)
-    logging.info("ODLCs found: %s", odlc_dict)
-    pipe_utils.output_odlc_json(output_path, odlc_dict)
 
     # Pick the emergent object and save the image cropped in on the emergent object
     if len(saved_humanoids) > 0:
-        emergent_object: BoundingBox = pick_emergent_object(saved_humanoids, odlc_dict)
-        emergent_image: consts.Image = cv2.imread(emergent_object.get_attribute("image_path"))
-        emergent_crop: consts.Image = crop_image(emergent_image, emergent_object)
+        emergent_object = pick_emergent_object(saved_humanoids, odlc_dict)
 
-        cv2.imwrite("emergent_object.jpg", emergent_crop)
+        odlc_dict = std_obj.add_emergent_object(odlc_dict, bottle_info, emergent_object)
+
+        emergent_latitude: float = emergent_object.get_attribute("latitude")
+        emergent_longitude: float = emergent_object.get_attribute("longitude")
+
+        logging.info(
+            "Emergent Object:\nLatitude: %s Longitude: %s", emergent_latitude, emergent_longitude
+        )
+
+    logging.info("ODLCs found: %s", odlc_dict)
+    pipe_utils.output_odlc_json(output_path, odlc_dict)
