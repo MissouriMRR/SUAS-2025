@@ -63,29 +63,54 @@
     },
     "waypoints": [
         {
-            "latitude": 38.31666797165995,
-            "longitude": -76.55340300006681,
-            "altitude": 46
+            "latitude": 0,
+            "longitude": 0,
+            "altitude": 30.5
         },
         {
-            "latitude": 38.315801403767026,
-            "longitude": -76.54934992599318,
-            "altitude": 105.46132219827021
+            "latitude": 0,
+            "longitude": 0,
+            "altitude": 30.5
         },
         {
-            "latitude": 38.31582316455992,
-            "longitude": -76.54969570024599,
-            "altitude": 35.1597594079172
+            "latitude": 0,
+            "longitude": 0,
+            "altitude": 30.5
         },
         {
-            "latitude": 38.315504579560375,
-            "longitude": -76.54365321865036,
-            "altitude": 109.13708757376315
+            "latitude": 0,
+            "longitude": 0,
+            "altitude": 30.5
         },
         {
-            "latitude": 38.31620034709087,
-            "longitude": -76.55364942630277,
-            "altitude": 41.82582471265606
+            "latitude": 0,
+            "longitude": 0,
+            "altitude": 30.5
+        },
+        {
+            "latitude": 0,
+            "longitude": 0,
+            "altitude": 30.5
+        },
+        {
+            "latitude": 0,
+            "longitude": 0,
+            "altitude": 30.5
+        },
+        {
+            "latitude": 0,
+            "longitude": 0,
+            "altitude": 30.5
+        },
+        {
+            "latitude": 0,
+            "longitude": 0,
+            "altitude": 30.5
+        },
+        {
+            "latitude": 0,
+            "longitude": 0,
+            "altitude": 30.5
         }
     ],
     "odlcAltitude": 24,
