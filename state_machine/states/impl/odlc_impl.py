@@ -125,30 +125,10 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
         # traverses the 3 waypoints starting at the midpoint on left to midpoint on the right
         # then to the top left corner at the rectangle
         point: int
-        for point in range(3):
+        for point in range(len(gps_data["odlc_waypoints"])):
             take_photos: bool = True
 
-            if point == 0:
-                logging.info("Moving to the center of the west boundary")
-            elif point == 1:
-                # starts taking photos at a .5 second interval because we want
-                # to get multiple photos of the boundary so there is overlap and
-                # the speed of the drone should be 20 m/s which is 64 feet/s which means
-                # it will traverse the length of the boundary (360 ft) in 6 sec
-                # and that means with the shortest length of photos
-                #  being taken depending on rotation
-                # would be 90 feet and we want to take multiple photos
-                # so we would need a minimum of 4 photos to cover
-                #  the whole boundary and we want multiple,
-                # so using .5 seconds between each photo allows
-                # it to take a minimum of 12 photos of
-                #  the odlc boundary which will capture the whole area
-
-                logging.info("Moving to the center of the east boundary")
-                take_photos = True
-
-            elif point == 2:
-                logging.info("Moving to the north west corner")
+            logging.info("Moving to ODLC scan point %d", point)
 
             if camera:
                 await camera.odlc_move_to(
@@ -157,6 +137,7 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
                     gps_data["odlc_waypoints"][point].longitude,
                     gps_data["odlc_altitude"],
                     take_photos,
+                    gps_data["odlc_heading"],
                 )
             else:
                 await move_to(

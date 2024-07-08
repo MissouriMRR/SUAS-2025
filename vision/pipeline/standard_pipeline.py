@@ -193,6 +193,38 @@ def get_bottle_index(shape: BoundingBox, bottle_info: dict[str, BottleData]) -> 
     return -1
 
 
+def add_emergent_object(
+    odlc_dict: consts.ODLCDict, bottle_info: dict[str, BottleData], emg_object: BoundingBox
+) -> consts.ODLCDict:
+    """Adds the emergent object location to the given
+    ODLC dictionary if one of the bottles is marked as
+    associated to a emergent object
+
+    Parameters
+    ----------
+    odlc_dict : consts.ODLCDict
+        The dictionary of ODLCs matching the output format
+    bottle_info : dict[str, BottleData]
+        The data describing the object matching each bottle
+    emg_object : BoundingBox
+        The bounding box of the emergent object. Attributes "latitude" and "longitude"
+        must be set
+
+    Returns
+    -------
+    consts.ODLCDict
+        The updated ODLC dictionary
+    """
+    bottle: tuple[str, BottleData]
+    for bottle in bottle_info.items():
+        if bottle[1]["shape"] == "Emergent":
+            odlc_dict[bottle[0]] = {
+                "latitude": emg_object.get_attribute("latitude"),
+                "longitude": emg_object.get_attribute("longitude"),
+            }
+    return odlc_dict
+
+
 def create_odlc_dict(sorted_odlcs: list[list[BoundingBox]]) -> consts.ODLCDict:
     """
     Creates the ODLC_Dict dictionary from a list of shape bounding boxes

@@ -52,7 +52,7 @@ def get_coordinates(
     )
 
     # Convert feet to meters
-    altitude_m: float = camera_parameters["altitude_f"] * 0.3048
+    altitude_m: float = camera_parameters["altitude_f"]  # This is already in meters
 
     # Find the pixel's intersect with the ground to get the location relative to the drone
     intersect: Point | None = vector_utils.pixel_intersect(

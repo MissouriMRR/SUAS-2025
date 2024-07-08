@@ -109,7 +109,13 @@ class Camera:
                 return target_name, photo_name
 
     async def odlc_move_to(
-        self, drone: Drone, latitude: float, longitude: float, altitude: float, take_photos: bool
+        self,
+        drone: Drone,
+        latitude: float,
+        longitude: float,
+        altitude: float,
+        take_photos: bool,
+        heading: float = 0,
     ) -> None:
         """
         This function takes in a latitude, longitude and altitude and autonomously
@@ -145,7 +151,7 @@ class Camera:
             break
 
         await drone.system.action.goto_location(
-            latitude, longitude, altitude + absolute_altitude, 0
+            latitude, longitude, altitude + absolute_altitude, heading
         )
         location_reached: bool = False
         # First determine if we need to move fast through waypoints or need to slow down at each one
@@ -188,7 +194,7 @@ class Camera:
                             pitch_deg,
                             yaw_deg,
                         ],
-                        "drone_coordinates": [drone_lat, drone_long],
+                        "drone_coordinates": [latitude, longitude],
                         "altitude_f": drone_alt,
                     }
                 }

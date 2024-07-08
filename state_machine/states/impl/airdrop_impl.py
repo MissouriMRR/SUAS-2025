@@ -64,11 +64,13 @@ async def run(self: Airdrop) -> State:
             logging.warning("No bottles are loaded?")
             return Land(self.drone, self.flight_settings)
 
+        dropped: bool = False
+
         try:
             bottle_loc: dict[str, float] = bottle_locations[str(bottle)]
 
             # Move to the bottle with priority
-            await move_to(self.drone.system, bottle_loc["latitude"], bottle_loc["longitude"], 80)
+            await move_to(self.drone.system, bottle_loc["latitude"], bottle_loc["longitude"], 24)
             logging.info(
                 "Starting bottle drop %s. Wait for drone to be stationary then drop.", bottle
             )
@@ -76,6 +78,7 @@ async def run(self: Airdrop) -> State:
             # if self.drone.address == "serial:///dev/ttyFTDI:921600":
             #   await airdrop.drop_bottle(servo_num)
 
+            dropped = True
             (cylinders[cylinder_num])["Loaded"] = False
 
             await asyncio.sleep(
@@ -87,10 +90,13 @@ async def run(self: Airdrop) -> State:
             # This means the location for the bottle loaded wasn't found.
             logging.warning("Info for bottle %s was not found. Skipping.", bottle)
             (cylinders[cylinder_num])["Loaded"] = False
+            dropped = False
 
         with open("flight/data/bottles.json", "w", encoding="utf8") as output:
             json.dump(cylinders, output)
 
+        if not dropped:
+            return Airdrop(self.drone, self.flight_settings)
         continue_run: bool = False
 
         for cylinder in cylinders:
