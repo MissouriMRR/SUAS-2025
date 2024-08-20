@@ -1,6 +1,6 @@
 # SUAS-2025
 
-Missouri S&amp;T Multirotor Drone Design Team's code for the Association for Unmanned Vehicle Systems International's 2025 Student Unmanned Aerial Systems Competition (AUVSI SUAS 2025)
+Missouri S&amp;T Multirotor Drone Design Team's code for the Association for Unmanned Vehicle Systems International's 2025 Student Unmanned Aerial Systems Competition (AUVSI SUAS 2025) hosted by robonation
 
 ## Table of contents
 
