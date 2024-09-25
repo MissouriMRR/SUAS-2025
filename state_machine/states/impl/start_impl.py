@@ -3,8 +3,9 @@
 import asyncio
 import logging
 
-from state_machine.state_tracker import update_state
+import dronekit
 
+from state_machine.state_tracker import update_state
 from state_machine.states.start import Start
 from state_machine.states.state import State
 from state_machine.states.takeoff import Takeoff
@@ -35,19 +36,17 @@ async def run(self: Start) -> State:
 
         # connect to the drone
         logging.info("Waiting for drone to connect...")
-        async for state in self.drone.system.core.connection_state():
-            if state.is_connected:
-                logging.info("Drone discovered!")
-                break
+        await self.drone.connect_drone()
 
-        logging.info("Waiting for drone to have a global position estimate...")
-        async for health in self.drone.system.telemetry.health():
-            if health.is_global_position_ok:
-                logging.info("Global position estimate ok")
-                break
+        logging.info("Waiting for pre-arm checks to pass...")
+        while not self.drone.vehicle.is_armable:
+            await asyncio.sleep(0.5)
 
         logging.info("-- Arming")
-        await self.drone.system.action.arm()
+        self.drone.vehicle.mode = dronekit.VehicleMode("GUIDED")
+        self.drone.vehicle.armed = True
+        while self.drone.vehicle.mode != "GUIDED" or not self.drone.vehicle.armed:
+            await asyncio.sleep(0.5)
 
         logging.info("Start state complete")
         return Takeoff(self.drone, self.flight_settings)

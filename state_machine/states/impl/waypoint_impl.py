@@ -7,10 +7,9 @@ import logging
 import traceback
 from typing import Final
 
-import mavsdk.telemetry
-import utm
+import dronekit
 
-from mavsdk.action import ActionError
+import utm
 
 from flight.extract_gps import extract_gps, GPSData
 from flight.extract_gps import (
@@ -60,7 +59,9 @@ async def run(self: Waypoint) -> State:
             await waypoint_logic(self)
             logging.info("Waypoint state completed")
 
-        return (ODLC if self.drone.odlc_scan else Airdrop)(self.drone, self.flight_settings)
+        return (ODLC if self.drone.odlc_scan else Airdrop)(
+            self.drone, self.flight_settings
+        )
 
     except asyncio.CancelledError as ex:
         logging.error("Waypoint state canceled")
@@ -97,12 +98,12 @@ async def waypoint_logic(self: Waypoint) -> None:
     )
 
     for waypoint_num, waypoint in enumerate(waypoints_utm):
-        drone_position: mavsdk.telemetry.Position = await anext(
-            self.drone.system.telemetry.position()
+        drone_position: dronekit.LocationGlobalRelative = (
+            self.drone.vehicle.location.global_relative_frame
         )
         drone_northing, drone_easting, _, _ = utm.from_latlon(
-            drone_position.latitude_deg,
-            drone_position.longitude_deg,
+            drone_position.lat,
+            drone_position.lon,
             boundary_points[0].zone_number,
             boundary_points[0].zone_letter,
         )
@@ -126,7 +127,9 @@ async def waypoint_logic(self: Waypoint) -> None:
                 line_segment.length()
                 for line_segment in LineSegment.from_points(goto_points, False)
             )
-            + (goto_points[0] - Point(drone_easting, drone_northing)).distance_from_origin()
+            + (
+                goto_points[0] - Point(drone_easting, drone_northing)
+            ).distance_from_origin()
         )
 
         curr_altitude: float = drone_position.relative_altitude_m
@@ -137,10 +140,15 @@ async def waypoint_logic(self: Waypoint) -> None:
         lat_deg: float
         lon_deg: float
         lat_deg, lon_deg = utm.to_latlon(
-            waypoint.easting, waypoint.northing, waypoint.zone_number, waypoint.zone_letter
+            waypoint.easting,
+            waypoint.northing,
+            waypoint.zone_number,
+            waypoint.zone_letter,
         )
 
-        logging.info("Moving to waypoint %d (lat=%f, lon=%f)", waypoint_num, lat_deg, lon_deg)
+        logging.info(
+            "Moving to waypoint %d (lat=%f, lon=%f)", waypoint_num, lat_deg, lon_deg
+        )
 
         for line_segment in LineSegment.from_points(goto_points, False):
             lat_deg, lon_deg = utm.to_latlon(
@@ -155,12 +163,9 @@ async def waypoint_logic(self: Waypoint) -> None:
                 (waypoint.altitude - curr_altitude) / path_length
             ) * line_segment.length()
 
-            try:
-                await move_to(self.drone.system, lat_deg, lon_deg, curr_altitude)
-            except ActionError:
-                logging.warning(ActionError)
+            await move_to(self.drone.vehicle, lat_deg, lon_deg, curr_altitude)
 
-        await move_to(self.drone.system, lat_deg, lon_deg, waypoint.altitude)
+        await move_to(self.drone.vehicle, lat_deg, lon_deg, waypoint.altitude)
 
         logging.info("Reached waypoint %d", waypoint_num)
 

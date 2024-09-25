@@ -58,7 +58,9 @@ async def run(self: ODLC) -> State:
             vision_odlc_logic(capture_status, self.flight_settings)
         )
 
-        flight_task: asyncio.Task[None] = asyncio.ensure_future(find_odlcs(self, capture_status))
+        flight_task: asyncio.Task[None] = asyncio.ensure_future(
+            find_odlcs(self, capture_status)
+        )
 
         logging.info("Starting check for task completion")
 
@@ -132,6 +134,7 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
 
             if camera:
                 await camera.odlc_move_to(
+                    # TODO: Convert to Dronekit
                     self.drone,
                     gps_data["odlc_waypoints"][point].latitude,
                     gps_data["odlc_waypoints"][point].longitude,
@@ -141,7 +144,7 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
                 )
             else:
                 await move_to(
-                    self.drone.system,
+                    self.drone.vehicle,
                     gps_data["odlc_waypoints"][point].latitude,
                     gps_data["odlc_waypoints"][point].longitude,
                     gps_data["odlc_altitude"],
@@ -188,7 +191,9 @@ async def vision_odlc_logic(
     camera_data_filename: str = "flight/data/camera.json"
 
     pipeline = (
-        emg_integration_pipeline if flight_settings.standard_object_count == 0 else flyover_pipeline
+        emg_integration_pipeline
+        if flight_settings.standard_object_count == 0
+        else flyover_pipeline
     )
 
     # Wait until camera.json exists
