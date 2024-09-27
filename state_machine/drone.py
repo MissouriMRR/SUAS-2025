@@ -35,13 +35,13 @@ class Drone:
         Get the Dronekit Vehicle object owned by this Drone object.
     """
 
-    def __init__(self, address: str) -> None:
+    def __init__(self, address: str = "") -> None:
         """
         Initialize a new Drone object, but do not connect to a drone.
 
         Parameters
         ----------
-        address : str
+        address : str, default ""
             The address of the drone to connect to when the `connect_drone()`
             method is called.
         """
@@ -50,9 +50,18 @@ class Drone:
         self.odlc_scan: bool = True
 
     async def connect_drone(self) -> None:
-        """Connect to a drone. This operation is idempotent."""
+        """Connect to a drone. This operation is idempotent.
+
+        Raises
+        ------
+        RuntimeError
+            If no connection address has been set.
+        """
         if self.is_connected:
             return
+
+        if len(self.address) == 0:
+            raise RuntimeError("no connection address specified")
 
         vehicle: dronekit.Vehicle = dronekit.connect(self.address)
         vehicle.wait_ready(True)  # this doesn't run asynchronously
