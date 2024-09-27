@@ -1,14 +1,13 @@
 """Defines the Drone class for the state machine."""
 
-import asyncio
-
 import dronekit
 
 
 class Drone:
     """
     A drone for the state machine to control.
-    This class is a wrapper around the mavsdk System class, and will be passed around to each state.
+    This class is a wrapper around the dronekit Vehicle class,
+    and will be passed around to each state.
     Data can be stored in this class to be shared between states.
 
     Attributes
@@ -56,7 +55,7 @@ class Drone:
             return
 
         vehicle: dronekit.Vehicle = dronekit.connect(self.address)
-        vehicle.wait_ready(True)  # TODO: modify dronekit and make it async
+        vehicle.wait_ready(True)  # this doesn't run asynchronously
         self._vehicle = vehicle
 
     @property

@@ -39,13 +39,11 @@ async def run(self: Takeoff) -> State:
         # Set takeoff altitude to the minimum allowed altitude, plus one meter
         # 3.28084 feet per meter
         takeoff_altitude: float = (
-            extract_gps(self.flight_settings.path_data_path)["altitude_limits"][0]
-            / 3.28084
-            + 1.0
+            extract_gps(self.flight_settings.path_data_path)["altitude_limits"][0] / 3.28084 + 1.0
         )
         logging.info("Using takeoff altitude of %f m", takeoff_altitude)
 
-        await self.drone.vehicle.simple_takeoff(takeoff_altitude)
+        self.drone.vehicle.simple_takeoff(takeoff_altitude)
 
         # Wait until the drone has stopped taking off
         while True:

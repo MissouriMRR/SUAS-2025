@@ -18,7 +18,11 @@ WAYPOINT_TOLERANCE: int = 6
 # for waypoints/odlcs search points
 # pylint: disable=duplicate-code
 async def move_to(
-    drone: dronekit.Vehicle, latitude: float, longitude: float, altitude: float
+    drone: dronekit.Vehicle,
+    latitude: float,
+    longitude: float,
+    altitude: float,
+    airspeed: float | None = None,
 ) -> None:
     """
     This function takes in a latitude, longitude and altitude and autonomously
@@ -27,7 +31,7 @@ async def move_to(
 
     Parameters
     ----------
-    drone: Vehicle
+    drone: dronekit.Vehicle
         a drone object that has all offboard data needed for computation
     latitude: float
         a float containing the requested latitude to move to
@@ -35,8 +39,14 @@ async def move_to(
         a float containing the requested longitude to move to
     altitude: float
         a float containing the requested altitude to go to in meters
+    airspeed: float, optional
+        a float containing the requested airspeed in meters per second;
+        if not specified, lets DroneKit decide the airspeed
     """
-    await drone.simple_goto(dronekit.LocationGlobalRelative)
+    drone.simple_goto(
+        dronekit.LocationGlobalRelative(latitude, longitude, altitude),
+        airspeed=airspeed,
+    )
     location_reached: bool = False
     # First determine if we need to move fast through waypoints or need to slow down at each one
     # Then loops until the waypoint is reached
@@ -50,7 +60,12 @@ async def move_to(
         drone_alt: float = position.alt
 
         total_distance: float = calculate_distance(
-            drone_lat, drone_long, drone_alt, latitude, longitude, altitude
+            drone_lat,
+            drone_long,
+            drone_alt,
+            latitude,
+            longitude,
+            altitude,
         )
 
         if total_distance < WAYPOINT_TOLERANCE:  # 6 meters = 19.685 feet.
