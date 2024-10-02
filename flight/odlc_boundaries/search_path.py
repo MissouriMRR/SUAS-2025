@@ -117,7 +117,7 @@ async def run() -> None:
     try:
         # create a drone object
         logging.info("Waiting for drone to connect...")
-        drone: dronekit.Vehicle = dronekit.connect(sitl.connection_string())
+        drone: dronekit.Vehicle = dronekit.connect("tcp:127.0.0.1:5762")
         drone.wait_ready(True)
 
         logging.info("Waiting for pre-arm checks to pass...")
@@ -210,7 +210,9 @@ if __name__ == "__main__":
     )
 
     # Generate search path
-    BUFFER_DISTANCE: int = -40  # use height/2 of camera image area on ground as buffer distance
+    BUFFER_DISTANCE: int = (
+        -40
+    )  # use height/2 of camera image area on ground as buffer distance
     search_paths: list[tuple[float, float]] = generate_search_paths(
         data_search_area_boundary_utm, BUFFER_DISTANCE
     )

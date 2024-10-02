@@ -60,13 +60,13 @@ class FlightManager:
         standard_object_count : int, default DEFAULT_STANDARD_OBJECT_COUNT
             The number of standard objects to attempt to find.
         """
-        sitl: dronekit_sitl.SITL | None = None
 
         if sim_flag:
             sitl = dronekit_sitl.start_default()
-            self.drone.address = sitl.connection_string()
+            self.drone.address = "tcp:127.0.0.1:5762"
         else:
-            self.drone.address = "serial:///dev/ttyFTDI:921600"
+            self.drone.address = "/dev/ttyFTDI"
+            self.drone.baud = 921600
 
         try:
             flight_settings_obj: FlightSettings = FlightSettings(
@@ -103,6 +103,7 @@ class FlightManager:
                 state_machine_task.cancel()
                 await self._graceful_exit()
         finally:
+            await self.drone.close()
             if sitl is not None:
                 sitl.stop()
 

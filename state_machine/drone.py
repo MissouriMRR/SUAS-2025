@@ -14,6 +14,8 @@ class Drone:
     ----------
     address : str
         The address used to connect to the drone.
+    baud : int | None
+        The baud rate, or None to use the default.
     is_connected
     odlc_scan : bool
         A boolean to tell if the odlc zone needs to be scanned, used the
@@ -27,15 +29,17 @@ class Drone:
     -------
     __init__(connection_string: str) -> None
         Initialize a new Drone object, but do not connect to a drone.
-    connect_drone(self) -> Awaitable[None]
-        Connect to a drone.
-    is_connected(self) -> bool
-        Checks if a drone has been connected to.
     vehicle(self) -> dronekit.Vehicle
         Get the Dronekit Vehicle object owned by this Drone object.
+    is_connected(self) -> bool
+        Checks if a drone has been connected to.
+    connect_drone(self) -> Awaitable[None]
+        Connect to a drone.
+    close(self) -> Awaitable[none]
+        Close the owned DroneKit Vehicle object.
     """
 
-    def __init__(self, address: str = "") -> None:
+    def __init__(self, address: str = "", baud: int | None = None) -> None:
         """
         Initialize a new Drone object, but do not connect to a drone.
 
@@ -44,10 +48,43 @@ class Drone:
         address : str, default ""
             The address of the drone to connect to when the `connect_drone()`
             method is called.
+        baud : int, default None
+            The baud rate, or None to use the default.
         """
         self._vehicle: dronekit.Vehicle | None = None
         self.address: str = address
+        self.baud: int | None = baud
         self.odlc_scan: bool = True
+
+    @property
+    def is_connected(self) -> bool:
+        """Checks if a drone has been connected to.
+
+        Returns
+        -------
+        bool
+            Whether this Drone object has connected to a drone.
+        """
+        return self._vehicle is not None
+
+    @property
+    def vehicle(self) -> dronekit.Vehicle:
+        """Get the DroneKit Vehicle object owned by this Drone object.
+
+        Returns
+        -------
+        dronekit.Vehicle
+            The Vehicle object owned by this Drone object.
+
+        Raises
+        ------
+        AttributeError
+            If a connection hasn't been made yet.
+        """
+        vehicle: dronekit.Vehicle | None = self._vehicle
+        if vehicle is None:
+            raise RuntimeError("we haven't connected to the drone yet")
+        return vehicle
 
     async def connect_drone(self) -> None:
         """Connect to a drone. This operation is idempotent.
@@ -63,36 +100,12 @@ class Drone:
         if len(self.address) == 0:
             raise RuntimeError("no connection address specified")
 
-        vehicle: dronekit.Vehicle = dronekit.connect(self.address)
-        vehicle.wait_ready(True)  # this doesn't run asynchronously
-        self._vehicle = vehicle
+        vehicle: dronekit.Vehicle = (
+            dronekit.connect(self.address, wait_ready=True)
+            if self.baud is None
+            else dronekit.connect(self.address, wait_ready=True, baud=self.baud)
+        )
 
-    @property
-    def is_connected(self) -> bool:
-        """Checks if a drone has been connected to.
-
-        Returns
-        -------
-        bool
-            Whether this Drone object has connected to a drone.
-        """
-        return self._vehicle is not None
-
-    @property
-    def vehicle(self) -> dronekit.Vehicle:
-        """Get the Dronekit Vehicle object owned by this Drone object.
-
-        Returns
-        -------
-        dronekit.Vehicle
-            The Vehicle object owned by this Drone object.
-
-        Raises
-        ------
-        AttributeError
-            If a connection hasn't been made yet.
-        """
-        vehicle: dronekit.Vehicle | None = self._vehicle
-        if vehicle is None:
-            raise AttributeError("we haven't connected to the drone yet")
-        return vehicle
+    async def close(self) -> None:
+        """Close the owned DroneKit Vehicle object."""
+        self.vehicle.close()

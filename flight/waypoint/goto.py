@@ -39,9 +39,9 @@ async def move_to(
         a float containing the requested longitude to move to
     altitude: float
         a float containing the requested altitude to go to in meters
-    airspeed: float, optional
-        a float containing the requested airspeed in meters per second;
-        if not specified, lets DroneKit decide the airspeed
+    airspeed: float, default None
+        a float containing the requested airspeed in meters per second,
+        or None to let DroneKit decide the airspeed
     """
     drone.simple_goto(
         dronekit.LocationGlobalRelative(latitude, longitude, altitude),
