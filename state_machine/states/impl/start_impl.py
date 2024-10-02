@@ -45,7 +45,7 @@ async def run(self: Start) -> State:
         logging.info("-- Arming")
         self.drone.vehicle.mode = dronekit.VehicleMode("GUIDED")
         self.drone.vehicle.armed = True
-        while self.drone.vehicle.mode != "GUIDED" or not self.drone.vehicle.armed:
+        while self.drone.vehicle.mode.name != "GUIDED" or not self.drone.vehicle.armed:
             await asyncio.sleep(0.5)
 
         logging.info("Start state complete")
