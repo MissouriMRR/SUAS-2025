@@ -6,8 +6,8 @@ import sys
 
 from state_machine.drone import Drone
 
-SIM_ADDR: str = "udp://:14540"  # Address to connect to the simulator
-CONTROLLER_ADDR: str = "serial:///dev/ttyFTDI:921600"  # Address to connect to a pixhawk board
+SIM_ADDR: str = "tcp:127.0.0.1:5762"  # Address to connect to the simulator
+CONTROLLER_ADDR: str = "/dev/ttyFTDI"  # Address to connect to a pixhawk board
 
 
 async def run_test(sim: bool) -> None:
@@ -20,15 +20,15 @@ async def run_test(sim: bool) -> None:
         Whether to run the state machine in simulation mode.
     """
     address: str = SIM_ADDR if sim else CONTROLLER_ADDR
-    drone: Drone = Drone(address)
+    drone: Drone = Drone(address=address, baud=921600)
     await drone.connect_drone()
 
     # connect to the drone
     logging.info("Waiting for drone to connect...")
-    async for state in drone.system.core.connection_state():
-        if state.is_connected:
-            logging.info("Drone discovered!")
-            break
+    while not drone.is_connected:
+        await asyncio.sleep(1)
+
+    logging.info("Drone discovered!")
 
 
 if __name__ == "__main__":
