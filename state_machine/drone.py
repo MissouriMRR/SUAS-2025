@@ -100,7 +100,7 @@ class Drone:
         if len(self.address) == 0:
             raise RuntimeError("no connection address specified")
 
-        vehicle: dronekit.Vehicle = (
+        self._vehicle = (
             dronekit.connect(self.address, wait_ready=True)
             if self.baud is None
             else dronekit.connect(self.address, wait_ready=True, baud=self.baud)
