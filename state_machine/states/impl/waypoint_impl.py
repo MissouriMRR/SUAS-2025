@@ -132,7 +132,7 @@ async def waypoint_logic(self: Waypoint) -> None:
             ).distance_from_origin()
         )
 
-        curr_altitude: float = drone_position.relative_altitude_m
+        curr_altitude: float = drone_position.alt
         # altitude_slope: float = (waypoint.altitude - curr_altitude) / path_length
 
         goto_points.pop()  # The last point is just the waypoint
