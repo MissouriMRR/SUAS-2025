@@ -4,7 +4,6 @@ import asyncio
 import logging
 
 import dronekit
-import dronekit_sitl
 
 from state_machine.drone import Drone
 from state_machine.state_machine import StateMachine
@@ -62,50 +61,44 @@ class FlightManager:
         """
 
         if sim_flag:
-            sitl = dronekit_sitl.start_default()
             self.drone.address = "tcp:127.0.0.1:5762"
         else:
             self.drone.address = "/dev/ttyFTDI"
             self.drone.baud = 921600
 
+        flight_settings_obj: FlightSettings = FlightSettings(
+            sim_flag=sim_flag,
+            path_data_path=path_data_path,
+            skip_waypoint=skip_waypoint,
+            standard_object_count=standard_object_count,
+        )
+        logging.info("Initializing drone connection")
+        await self.drone.connect_drone()
+
+        logging.info("Starting processes")
+
+        state_machine_task: asyncio.Task[None] = asyncio.ensure_future(
+            StateMachine(
+                Start(self.drone, flight_settings_obj),
+                self.drone,
+                flight_settings_obj,
+            ).run()
+        )
+
+        asyncio.ensure_future(self.kill_switch(state_machine_task))
+
         try:
-            flight_settings_obj: FlightSettings = FlightSettings(
-                sim_flag=sim_flag,
-                path_data_path=path_data_path,
-                skip_waypoint=skip_waypoint,
-                standard_object_count=standard_object_count,
+            while not state_machine_task.done():
+                await asyncio.sleep(0.25)
+
+            logging.info("State machine task has completed. Exiting...")
+            return
+        except KeyboardInterrupt:
+            logging.critical(
+                "Keyboard interrupt detected. Killing state machine and landing drone."
             )
-            logging.info("Initializing drone connection")
-            await self.drone.connect_drone()
-
-            logging.info("Starting processes")
-
-            state_machine_task: asyncio.Task[None] = asyncio.ensure_future(
-                StateMachine(
-                    Start(self.drone, flight_settings_obj),
-                    self.drone,
-                    flight_settings_obj,
-                ).run()
-            )
-
-            asyncio.ensure_future(self.kill_switch(state_machine_task))
-
-            try:
-                while not state_machine_task.done():
-                    await asyncio.sleep(0.25)
-
-                logging.info("State machine task has completed. Exiting...")
-                return
-            except KeyboardInterrupt:
-                logging.critical(
-                    "Keyboard interrupt detected. Killing state machine and landing drone."
-                )
-                state_machine_task.cancel()
-                await self._graceful_exit()
-        finally:
-            await self.drone.close()
-            if sitl is not None:
-                sitl.stop()
+            state_machine_task.cancel()
+            await self._graceful_exit()
 
     async def kill_switch(self, state_machine_process: asyncio.Task[None]) -> None:
         """

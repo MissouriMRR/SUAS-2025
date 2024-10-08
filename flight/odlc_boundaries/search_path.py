@@ -10,7 +10,6 @@ import asyncio
 import utm
 
 import dronekit
-import dronekit_sitl
 from shapely.geometry import Polygon
 
 from flight.waypoint.goto import move_to
@@ -113,46 +112,42 @@ async def run() -> None:
         "Altitude": [85],
     }
 
-    sitl: dronekit_sitl.SITL = dronekit_sitl.start_default()
-    try:
-        # create a drone object
-        logging.info("Waiting for drone to connect...")
-        drone: dronekit.Vehicle = dronekit.connect("tcp:127.0.0.1:5762")
-        drone.wait_ready(True)
+    # create a drone object
+    logging.info("Waiting for drone to connect...")
+    drone: dronekit.Vehicle = dronekit.connect("tcp:127.0.0.1:5762")
+    drone.wait_ready(True)
 
-        logging.info("Waiting for pre-arm checks to pass...")
-        while not drone.is_armable:
-            await asyncio.sleep(0.5)
+    logging.info("Waiting for pre-arm checks to pass...")
+    while not drone.is_armable:
+        await asyncio.sleep(0.5)
 
-        logging.info("-- Arming")
-        drone.mode = dronekit.VehicleMode("GUIDED")
-        drone.armed = True
-        while drone.mode != "GUIDED" or not drone.armed:
-            await asyncio.sleep(0.5)
+    logging.info("-- Arming")
+    drone.mode = dronekit.VehicleMode("GUIDED")
+    drone.armed = True
+    while drone.mode != "GUIDED" or not drone.armed:
+        await asyncio.sleep(0.5)
 
-        logging.info("-- Taking off")
-        drone.simple_takeoff(12.0)
+    logging.info("-- Taking off")
+    drone.simple_takeoff(12.0)
 
-        # wait for drone to take off
-        await asyncio.sleep(10)
+    # wait for drone to take off
+    await asyncio.sleep(10)
 
-        # move to each waypoint in mission
-        point: int
-        for point in range(3):
-            logging.info("Moving")
-            await move_to(
-                drone,
-                waypoint["lats"][point],
-                waypoint["longs"][point],
-                waypoint["Altitude"][0],
-                20.0,
-            )
+    # move to each waypoint in mission
+    point: int
+    for point in range(3):
+        logging.info("Moving")
+        await move_to(
+            drone,
+            waypoint["lats"][point],
+            waypoint["longs"][point],
+            waypoint["Altitude"][0],
+            20.0,
+        )
 
-        # infinite loop till forced disconnect
-        while True:
-            await asyncio.sleep(1)
-    finally:
-        sitl.stop()
+    # infinite loop till forced disconnect
+    while True:
+        await asyncio.sleep(1)
 
 
 if __name__ == "__main__":
@@ -210,9 +205,7 @@ if __name__ == "__main__":
     )
 
     # Generate search path
-    BUFFER_DISTANCE: int = (
-        -40
-    )  # use height/2 of camera image area on ground as buffer distance
+    BUFFER_DISTANCE: int = -40  # use height/2 of camera image area on ground as buffer distance
     search_paths: list[tuple[float, float]] = generate_search_paths(
         data_search_area_boundary_utm, BUFFER_DISTANCE
     )
