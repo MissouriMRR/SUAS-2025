@@ -37,6 +37,10 @@ class Drone:
         Connect to a drone.
     close(self) -> Awaitable[none]
         Close the owned DroneKit Vehicle object.
+    def use_sim_settings(self) -> None:
+        Modify the connection settings to connect to a simulated vehicle.
+    def use_real_settings(self) -> None:
+        Modify the connection settings to connect to a real vehicle.
     """
 
     def __init__(self, address: str = "", baud: int | None = None) -> None:
@@ -109,3 +113,13 @@ class Drone:
     async def close(self) -> None:
         """Close the owned DroneKit Vehicle object."""
         self.vehicle.close()
+
+    def use_sim_settings(self) -> None:
+        """Modify the connection settings to connect to a simulated vehicle."""
+        self.address = "tcp:127.0.0.1:5762"
+        self.baud = None
+
+    def use_real_settings(self) -> None:
+        """Modify the connection settings to connect to a real vehicle."""
+        self.address = "/dev/ttyFTDI"
+        self.baud = 921600
