@@ -55,7 +55,7 @@ async def run(sim: bool) -> None:
     logging.info("-- Arming")
     drone.vehicle.mode = VehicleMode("GUIDED")
     drone.vehicle.armed = True
-    while drone.vehicle.mode != "GUIDED" or not drone.vehicle.armed:
+    while drone.vehicle.mode.name != "GUIDED" or not drone.vehicle.armed:
         await asyncio.sleep(0.5)
 
     logging.info("-- Taking off")
