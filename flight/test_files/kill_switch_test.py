@@ -2,7 +2,8 @@
 
 import asyncio
 import logging
-from mavsdk.telemetry import FlightMode
+
+import dronekit
 
 from state_machine.flight_manager import FlightManager
 from state_machine.drone import Drone
@@ -12,32 +13,31 @@ async def run_flight_code() -> None:
     """Run flight code to hold the drone in mid air and log the flight mode."""
     logging.info("Starting state machine")
     drone: Drone = Drone()
+    drone.use_sim_settings()
     await drone.connect_drone()
-    # connect to the drone
-    logging.info("Waiting for drone to connect...")
-    async for state in drone.system.core.connection_state():
-        if state.is_connected:
-            logging.info("Drone discovered!")
-            break
 
-    logging.info("Waiting for drone to have a global position estimate...")
-    async for health in drone.system.telemetry.health():
-        if health.is_global_position_ok:
-            logging.info("Global position estimate ok")
-            break
+    # connect to the drone
+    logging.info("Waiting for pre-arm checks to pass...")
+    while not drone.vehicle.is_armable:
+        await asyncio.sleep(0.5)
 
     logging.info("-- Arming")
-    await drone.system.action.arm()
+    drone.vehicle.mode = dronekit.VehicleMode("GUIDED")
+    drone.vehicle.armed = True
+    while drone.vehicle.mode != "GUIDED" or not drone.vehicle.armed:
+        await asyncio.sleep(0.5)
 
     logging.info("-- Taking off")
-    await drone.system.action.takeoff()
+    drone.vehicle.simple_takeoff(12)
 
-    alerted: bool = False
-    async for flight_mode in drone.system.telemetry.flight_mode():
-        logging.info("Flight mode: %s", flight_mode)
-        if flight_mode == FlightMode.HOLD and not alerted:
-            logging.info("Holding position. Test the kill switch now.")
-            alerted = True
+    # wait for drone to take off
+    while drone.vehicle.location.global_relative_frame.alt < 11.9:
+        await asyncio.sleep(1)
+
+    await asyncio.sleep(5)
+    logging.info("Holding position. Test the kill switch now.")
+
+    while True:
         await asyncio.sleep(1)
 
 
@@ -53,7 +53,7 @@ async def start_2(flight_process: asyncio.Task[None]) -> None:
         flight_process (Process): The process running the flight code.
     """
     flight_manager: FlightManager = FlightManager()
-    flight_manager.drone.address = "udp://:14540"
+    flight_manager.drone.use_sim_settings()
     asyncio.run(FlightManager().kill_switch(flight_process))
 
 
