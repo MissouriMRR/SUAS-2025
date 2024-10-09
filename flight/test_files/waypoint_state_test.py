@@ -182,6 +182,11 @@ async def run_test(_sim: bool) -> None:  # Temporary fix for unused variable
     path_data_path: str = "flight/data/waypoint_data.json" if _sim else "flight/data/golf_data.json"
 
     drone: Drone = Drone()
+    if _sim:
+        drone.use_sim_settings()
+    else:
+        drone.use_real_settings()
+
     drone.odlc_scan = False
     flight_settings: FlightSettings = FlightSettings(sim_flag=_sim, path_data_path=path_data_path)
     await drone.connect_drone()

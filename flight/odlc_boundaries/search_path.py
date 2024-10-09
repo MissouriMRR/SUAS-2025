@@ -13,6 +13,7 @@ import dronekit
 from shapely.geometry import Polygon
 
 from flight.waypoint.goto import move_to
+from state_machine.drone import Drone
 
 
 def latlon_to_utm(coords: dict[str, float]) -> dict[str, float]:
@@ -114,21 +115,22 @@ async def run() -> None:
 
     # create a drone object
     logging.info("Waiting for drone to connect...")
-    drone: dronekit.Vehicle = dronekit.connect("tcp:127.0.0.1:5762")
-    drone.wait_ready(True)
+    drone: Drone = Drone()
+    drone.use_sim_settings()
+    await drone.connect_drone()
 
     logging.info("Waiting for pre-arm checks to pass...")
-    while not drone.is_armable:
+    while not drone.vehicle.is_armable:
         await asyncio.sleep(0.5)
 
     logging.info("-- Arming")
-    drone.mode = dronekit.VehicleMode("GUIDED")
-    drone.armed = True
-    while drone.mode != "GUIDED" or not drone.armed:
+    drone.vehicle.mode = dronekit.VehicleMode("GUIDED")
+    drone.vehicle.armed = True
+    while drone.vehicle.mode != "GUIDED" or not drone.vehicle.armed:
         await asyncio.sleep(0.5)
 
     logging.info("-- Taking off")
-    drone.simple_takeoff(12.0)
+    drone.vehicle.simple_takeoff(12.0)
 
     # wait for drone to take off
     await asyncio.sleep(10)
@@ -138,7 +140,7 @@ async def run() -> None:
     for point in range(3):
         logging.info("Moving")
         await move_to(
-            drone,
+            drone.vehicle,
             waypoint["lats"][point],
             waypoint["longs"][point],
             waypoint["Altitude"][0],

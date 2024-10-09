@@ -9,9 +9,8 @@ import sys
 import dronekit
 
 from flight.waypoint.calculate_distance import calculate_distance
+from state_machine.drone import Drone
 
-SIM_ADDR: str = "tcp:127.0.0.1:5762"
-CON_ADDR: str = "/dev/ttyFTDI"
 WAYPOINT_TOLERANCE: int = 6
 
 
@@ -84,32 +83,35 @@ async def run() -> None:
     lats: list[float] = [37.94893290, 37.947899284]
     longs: list[float] = [-91.784668343, -91.782420970]
 
+    drone: Drone = Drone()
+    drone.use_real_settings()
+
     # create a drone object
     logging.info("Waiting for drone to connect...")
-    drone: dronekit.Vehicle = dronekit.connect(SIM_ADDR, baud=921600, wait_ready=True)
+    await drone.connect_drone()
 
     # initilize drone configurations
-    drone.airspeed = 20
+    drone.vehicle.airspeed = 20
 
     logging.info("Waiting for pre-arm checks to pass...")
-    while not drone.is_armable:
+    while not drone.vehicle.is_armable:
         await asyncio.sleep(0.5)
 
     logging.info("-- Arming")
-    drone.mode = dronekit.VehicleMode("GUIDED")
-    drone.armed = True
-    while drone.mode != "GUIDED" or not drone.armed:
+    drone.vehicle.mode = dronekit.VehicleMode("GUIDED")
+    drone.vehicle.armed = True
+    while drone.vehicle.mode != "GUIDED" or not drone.vehicle.armed:
         await asyncio.sleep(0.5)
 
     logging.info("-- Taking off")
-    drone.simple_takeoff(25)
+    drone.vehicle.simple_takeoff(25)
 
     # wait for drone to take off
     await asyncio.sleep(15)
 
     # Fly to first waypoint
     print("Going to first waypoint")
-    await drone.simple_goto(dronekit.LocationGlobalRelative(lats[0], longs[0], 25))
+    await drone.vehicle.simple_goto(dronekit.LocationGlobalRelative(lats[0], longs[0], 25))
     await asyncio.sleep(10)
 
     # Begin 12 mile flight
@@ -117,17 +119,17 @@ async def run() -> None:
     for i in range(43):
         point: int
         for point in range(len(lats)):
-            await move_to(drone, lats[point], longs[point], 75)
+            await move_to(drone.vehicle, lats[point], longs[point], 75)
             print("Reached waypoint")
         print("Iteration:", i)
 
     # return home
     logging.info("12 miles accomplished")
     logging.info("Returning to home")
-    drone.mode = dronekit.VehicleMode("RTL")
-    while drone.mode.name != "RTL":
+    drone.vehicle.mode = dronekit.VehicleMode("RTL")
+    while drone.vehicle.mode.name != "RTL":
         await asyncio.sleep(0.5)
-    while drone.system_status.state != "STANDBY":
+    while drone.vehicle.system_status.state != "STANDBY":
         await asyncio.sleep(0.5)
 
     logging.info("Staying connected...")

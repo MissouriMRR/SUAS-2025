@@ -11,8 +11,6 @@ from dronekit import VehicleMode
 from flight.waypoint.goto import move_to
 from state_machine.drone import Drone
 
-SIM_ADDR: str = "tcp:127.0.0.1:5762"  # Address to connect to the simulator
-CONTROLLER_ADDR: str = "/dev/ttyFTDI"  # Address to connect to a pixhawk board
 WAYPOINT_TOLERANCE: int = 6  #
 
 
@@ -36,9 +34,13 @@ async def run(sim: bool) -> None:
     longs: list[float] = [-91.784431, -91.783406, -91.783253, -91.784169]
 
     # create a drone object
-    address: str = SIM_ADDR if sim else CONTROLLER_ADDR
+    drone: Drone = Drone()
+    if sim:
+        drone.use_sim_settings()
+    else:
+        drone.use_real_settings()
+
     logging.info("Waiting for drone to connect...")
-    drone: Drone = Drone(address, baud=921600)
     await drone.connect_drone()
     logging.info("Drone discovered!")
 

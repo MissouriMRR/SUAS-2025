@@ -61,10 +61,9 @@ class FlightManager:
         """
 
         if sim_flag:
-            self.drone.address = "tcp:127.0.0.1:5762"
+            self.drone.use_sim_settings()
         else:
-            self.drone.address = "/dev/ttyFTDI"
-            self.drone.baud = 921600
+            self.drone.use_real_settings()
 
         flight_settings_obj: FlightSettings = FlightSettings(
             sim_flag=sim_flag,

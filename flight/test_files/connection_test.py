@@ -6,9 +6,6 @@ import sys
 
 from state_machine.drone import Drone
 
-SIM_ADDR: str = "tcp:127.0.0.1:5762"  # Address to connect to the simulator
-CONTROLLER_ADDR: str = "/dev/ttyFTDI"  # Address to connect to a pixhawk board
-
 
 async def run_test(sim: bool) -> None:
     """
@@ -19,8 +16,11 @@ async def run_test(sim: bool) -> None:
     sim : bool
         Whether to run the state machine in simulation mode.
     """
-    address: str = SIM_ADDR if sim else CONTROLLER_ADDR
-    drone: Drone = Drone(address=address, baud=921600)
+    drone: Drone = Drone()
+    if sim:
+        drone.use_sim_settings()
+    else:
+        drone.use_real_settings()
     await drone.connect_drone()
 
     # connect to the drone
