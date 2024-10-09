@@ -129,23 +129,8 @@ async def run() -> None:
         [38.31466, -76.54665],
     ]
 
-    await move_to(drone, points[0][0], points[0][1], obj_altitude, accuracy_mod)
-
-    await move_to(drone, points[1][0], points[1][1], obj_altitude, accuracy_mod)
-
-    await move_to(drone, points[2][0], points[2][1], obj_altitude, accuracy_mod)
-
-    await move_to(drone, points[3][0], points[3][1], obj_altitude, accuracy_mod)
-
-    await move_to(drone, points[4][0], points[4][1], obj_altitude, accuracy_mod)
-
-    await move_to(drone, points[5][0], points[5][1], obj_altitude, accuracy_mod)
-
-    await move_to(drone, points[6][0], points[6][1], obj_altitude, accuracy_mod)
-
-    await move_to(drone, points[7][0], points[7][1], obj_altitude, accuracy_mod)
-
-    await move_to(drone, points[8][0], points[8][1], obj_altitude, accuracy_mod)
+    for point in points:
+        await move_to(drone, point[0], point[1], obj_altitude, accuracy_mod)
 
     # return home
     await drone.action.return_to_launch()
