@@ -62,7 +62,7 @@ async def run() -> None:
 
     point: tuple[float, float]
     for point in points:
-        await move_to(drone, point[0], point[1], obj_altitude, accuracy_mod)
+        await move_to(drone.vehicle, point[0], point[1], obj_altitude, accuracy_mod)
 
     # return home
     drone.vehicle.mode = dronekit.VehicleMode("RTL")
