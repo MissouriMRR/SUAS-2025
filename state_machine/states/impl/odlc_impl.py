@@ -58,9 +58,7 @@ async def run(self: ODLC) -> State:
             vision_odlc_logic(capture_status, self.flight_settings)
         )
 
-        flight_task: asyncio.Task[None] = asyncio.ensure_future(
-            find_odlcs(self, capture_status)
-        )
+        flight_task: asyncio.Task[None] = asyncio.ensure_future(find_odlcs(self, capture_status))
 
         logging.info("Starting check for task completion")
 
@@ -191,9 +189,7 @@ async def vision_odlc_logic(
     camera_data_filename: str = "flight/data/camera.json"
 
     pipeline = (
-        emg_integration_pipeline
-        if flight_settings.standard_object_count == 0
-        else flyover_pipeline
+        emg_integration_pipeline if flight_settings.standard_object_count == 0 else flyover_pipeline
     )
 
     # Wait until camera.json exists

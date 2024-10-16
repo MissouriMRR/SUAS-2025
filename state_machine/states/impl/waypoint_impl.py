@@ -59,9 +59,7 @@ async def run(self: Waypoint) -> State:
             await waypoint_logic(self)
             logging.info("Waypoint state completed")
 
-        return (ODLC if self.drone.odlc_scan else Airdrop)(
-            self.drone, self.flight_settings
-        )
+        return (ODLC if self.drone.odlc_scan else Airdrop)(self.drone, self.flight_settings)
 
     except asyncio.CancelledError as ex:
         logging.error("Waypoint state canceled")
@@ -127,9 +125,7 @@ async def waypoint_logic(self: Waypoint) -> None:
                 line_segment.length()
                 for line_segment in LineSegment.from_points(goto_points, False)
             )
-            + (
-                goto_points[0] - Point(drone_easting, drone_northing)
-            ).distance_from_origin()
+            + (goto_points[0] - Point(drone_easting, drone_northing)).distance_from_origin()
         )
 
         curr_altitude: float = drone_position.alt
@@ -146,9 +142,7 @@ async def waypoint_logic(self: Waypoint) -> None:
             waypoint.zone_letter,
         )
 
-        logging.info(
-            "Moving to waypoint %d (lat=%f, lon=%f)", waypoint_num, lat_deg, lon_deg
-        )
+        logging.info("Moving to waypoint %d (lat=%f, lon=%f)", waypoint_num, lat_deg, lon_deg)
 
         for line_segment in LineSegment.from_points(goto_points, False):
             lat_deg, lon_deg = utm.to_latlon(

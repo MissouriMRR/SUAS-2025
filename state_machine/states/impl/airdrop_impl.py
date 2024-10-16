@@ -70,9 +70,7 @@ async def run(self: Airdrop) -> State:
             bottle_loc: dict[str, float] = bottle_locations[str(bottle)]
 
             # Move to the bottle with priority
-            await move_to(
-                self.drone.vehicle, bottle_loc["latitude"], bottle_loc["longitude"], 24
-            )
+            await move_to(self.drone.vehicle, bottle_loc["latitude"], bottle_loc["longitude"], 24)
             logging.info(
                 "Starting bottle drop %s. Wait for drone to be stationary then drop.",
                 bottle,
