@@ -70,9 +70,10 @@ async def run(self: Airdrop) -> State:
             bottle_loc: dict[str, float] = bottle_locations[str(bottle)]
 
             # Move to the bottle with priority
-            await move_to(self.drone.system, bottle_loc["latitude"], bottle_loc["longitude"], 24)
+            await move_to(self.drone.vehicle, bottle_loc["latitude"], bottle_loc["longitude"], 24)
             logging.info(
-                "Starting bottle drop %s. Wait for drone to be stationary then drop.", bottle
+                "Starting bottle drop %s. Wait for drone to be stationary then drop.",
+                bottle,
             )
             # If bottle drop is automatic these would be used
             # if self.drone.address == "serial:///dev/ttyFTDI:921600":

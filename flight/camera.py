@@ -4,15 +4,16 @@
 # Not worth to deal with this with the time crunch we are in
 
 import asyncio
+import math
 import json
 import logging
 import os
 from datetime import datetime
 
+import dronekit
 import gphoto2
 
 from flight.waypoint.calculate_distance import calculate_distance
-from state_machine.drone import Drone
 
 WAYPOINT_TOLERANCE: int = 1  # in meters
 
@@ -110,7 +111,7 @@ class Camera:
 
     async def odlc_move_to(
         self,
-        drone: Drone,
+        drone: dronekit.Vehicle,
         latitude: float,
         longitude: float,
         altitude: float,
@@ -125,44 +126,48 @@ class Camera:
 
         Parameters
         ----------
-        drone: System
+        drone : dronekit.Vehicle
             a drone object that has all offboard data needed for computation
-        latitude: float
+        latitude : float
             a float containing the requested latitude to move to
-        longitude: float
+        longitude : float
             a float containing the requested longitude to move to
-        altitude: float
+        altitude : float
             a float contatining the requested altitude to go to in meters
-        fast_param: float
+        fast_param : float
             a float that determines if the drone will take less time checking its precise location
             before moving on to another waypoint. If its 1, it will move at normal speed,
             if its less than 1(0.83), it will be faster.
-        take_photos: bool
+        take_photos : bool
             will take photos with the camera until the position has been reached
+        heading : float, default 0
+            the yaw in degrees (0 is north, positive is clockwise)
         """
-        if take_photos:
-            await drone.system.action.set_maximum_speed(5)
+        # Convert from MAVSDK to DroneKit yaw
+        # In MAVSDK Action.simple_goto, 0 yaw is north and 90 yaw is east
+        # In DroneKit Gimbal, 0 yaw is north and 90 yaw is west
+        heading = -heading % 360.0
 
         info: dict[str, dict[str, int | list[int | float] | float]] = {}
 
-        # get current altitude
-        async for terrain_info in drone.system.telemetry.home():
-            absolute_altitude: float = terrain_info.absolute_altitude_m
-            break
-
-        await drone.system.action.goto_location(
-            latitude, longitude, altitude + absolute_altitude, heading
+        drone.simple_goto(
+            dronekit.LocationGlobalRelative(latitude, longitude, altitude),
+            groundspeed=5.0 if take_photos else None,
         )
+        # TODO: See if setting the yaw like this actually works
+        drone.gimbal.rotate(drone.gimbal.pitch, drone.gimbal.roll, heading)
         location_reached: bool = False
         # First determine if we need to move fast through waypoints or need to slow down at each one
         # Then loops until the waypoint is reached
         while not location_reached:
             logging.info("Going to waypoint")
-            async for position in drone.system.telemetry.position():
+            while True:
+                position: dronekit.LocationGlobalRelative = drone.location.global_relative_frame
+
                 # continuously checks current latitude, longitude and altitude of the drone
-                drone_lat: float = position.latitude_deg
-                drone_long: float = position.longitude_deg
-                drone_alt: float = position.relative_altitude_m
+                drone_lat: float = position.lat
+                drone_long: float = position.lon
+                drone_alt: float = position.alt
 
                 total_distance: float = calculate_distance(
                     drone_lat, drone_long, drone_alt, latitude, longitude, altitude
@@ -180,11 +185,10 @@ class Camera:
                 file_path: str
                 _full_path, file_path = await self.capture_photo()
 
-                async for euler in drone.system.telemetry.attitude_euler():
-                    roll_deg: float = euler.roll_deg
-                    pitch_deg: float = euler.pitch_deg
-                    yaw_deg: float = euler.yaw_deg
-                    break
+                attitude: dronekit.Attitude = drone.attitude
+                roll_deg: float = math.degrees(attitude.roll)
+                pitch_deg: float = math.degrees(attitude.pitch)
+                yaw_deg: float = math.degrees(attitude.yaw)
 
                 point: dict[str, dict[str, int | list[int | float] | float]] = {
                     file_path: {
@@ -212,7 +216,6 @@ class Camera:
                 with open("flight/data/camera.json", "w", encoding="ascii") as camera:
                     json.dump(current_photos | info, camera)
 
-                await drone.system.action.set_maximum_speed(13.41)
             # tell machine to sleep to prevent constant polling, preventing battery drain
             await asyncio.sleep(1)
         return

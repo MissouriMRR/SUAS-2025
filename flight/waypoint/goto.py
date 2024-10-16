@@ -6,7 +6,7 @@ for moving the drone to a certain waypoint and stopping there for 15 secs
 import asyncio
 import logging
 
-from mavsdk import System
+import dronekit
 
 from flight.waypoint.calculate_distance import calculate_distance
 
@@ -17,7 +17,13 @@ WAYPOINT_TOLERANCE: int = 6
 # duplicate code disabled since we may want different functionality
 # for waypoints/odlcs search points
 # pylint: disable=duplicate-code
-async def move_to(drone: System, latitude: float, longitude: float, altitude: float) -> None:
+async def move_to(
+    drone: dronekit.Vehicle,
+    latitude: float,
+    longitude: float,
+    altitude: float,
+    airspeed: float | None = None,
+) -> None:
     """
     This function takes in a latitude, longitude and altitude and autonomously
     moves the drone to that waypoint. This function will also auto convert the altitude
@@ -25,7 +31,7 @@ async def move_to(drone: System, latitude: float, longitude: float, altitude: fl
 
     Parameters
     ----------
-    drone: System
+    drone: dronekit.Vehicle
         a drone object that has all offboard data needed for computation
     latitude: float
         a float containing the requested latitude to move to
@@ -33,34 +39,40 @@ async def move_to(drone: System, latitude: float, longitude: float, altitude: fl
         a float containing the requested longitude to move to
     altitude: float
         a float containing the requested altitude to go to in meters
+    airspeed: float, default None
+        a float containing the requested airspeed in meters per second,
+        or None to let DroneKit decide the airspeed
     """
-
-    # get current altitude
-    async for terrain_info in drone.telemetry.home():
-        absolute_altitude: float = terrain_info.absolute_altitude_m
-        break
-
-    await drone.action.goto_location(latitude, longitude, altitude + absolute_altitude, 0)
+    drone.simple_goto(
+        dronekit.LocationGlobalRelative(latitude, longitude, altitude),
+        airspeed=airspeed,
+    )
     location_reached: bool = False
     # First determine if we need to move fast through waypoints or need to slow down at each one
     # Then loops until the waypoint is reached
+    logging.info("Going to waypoint")
     while not location_reached:
-        logging.info("Going to waypoint")
-        async for position in drone.telemetry.position():
-            # continuously checks current latitude, longitude and altitude of the drone
-            drone_lat: float = position.latitude_deg
-            drone_long: float = position.longitude_deg
-            drone_alt: float = position.relative_altitude_m
+        position: dronekit.LocationGlobalRelative = drone.location.global_relative_frame
 
-            total_distance: float = calculate_distance(
-                drone_lat, drone_long, drone_alt, latitude, longitude, altitude
-            )
+        # continuously checks current latitude, longitude and altitude of the drone
+        drone_lat: float = position.lat
+        drone_long: float = position.lon
+        drone_alt: float = position.alt
 
-            if total_distance < WAYPOINT_TOLERANCE:  # 6 meters = 19.685 feet.
-                location_reached = True
-                logging.info("Arrived %sm away from waypoint", total_distance)
-                break
+        total_distance: float = calculate_distance(
+            drone_lat,
+            drone_long,
+            drone_alt,
+            latitude,
+            longitude,
+            altitude,
+        )
+
+        if total_distance < WAYPOINT_TOLERANCE:  # 6 meters = 19.685 feet.
+            location_reached = True
+            logging.info("Arrived %sm away from waypoint", total_distance)
+            break
 
         # tell machine to sleep to prevent constant polling, preventing battery drain
-        await asyncio.sleep(1)
+        await asyncio.sleep(1.0)
     return

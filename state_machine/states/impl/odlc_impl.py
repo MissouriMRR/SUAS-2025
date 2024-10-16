@@ -132,6 +132,7 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
 
             if camera:
                 await camera.odlc_move_to(
+                    # TODO: Convert to Dronekit
                     self.drone,
                     gps_data["odlc_waypoints"][point].latitude,
                     gps_data["odlc_waypoints"][point].longitude,
@@ -141,7 +142,7 @@ async def find_odlcs(self: ODLC, capture_status: "SynchronizedBase[c_bool]") -> 
                 )
             else:
                 await move_to(
-                    self.drone.system,
+                    self.drone.vehicle,
                     gps_data["odlc_waypoints"][point].latitude,
                     gps_data["odlc_waypoints"][point].longitude,
                     gps_data["odlc_altitude"],

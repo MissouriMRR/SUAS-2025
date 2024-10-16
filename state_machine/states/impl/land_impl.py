@@ -3,9 +3,13 @@
 import asyncio
 import logging
 
-from mavsdk.action import ActionError
-from mavsdk.telemetry import FlightMode
-from state_machine.state_tracker import update_state, update_drone, update_flight_settings
+import dronekit
+
+from state_machine.state_tracker import (
+    update_state,
+    update_drone,
+    update_flight_settings,
+)
 from state_machine.states.land import Land
 
 
@@ -34,18 +38,15 @@ async def run(self: Land) -> None:
         logging.info("Landing")
 
         # Instruct the drone to land
-        await self.drone.system.action.return_to_launch()
+        self.drone.vehicle.mode = dronekit.VehicleMode("RTL")
+        while self.drone.vehicle.mode.name != "RTL":
+            await asyncio.sleep(0.5)
 
-        await asyncio.sleep(5)
-        async for flight_mode in self.drone.system.telemetry.flight_mode():
-            if flight_mode != FlightMode.RETURN_TO_LAUNCH:
-                break
-            await asyncio.sleep(1)
+        while self.drone.vehicle.system_status.state != "STANDBY":
+            await asyncio.sleep(0.5)
 
-        try:
-            await self.drone.system.action.disarm()
-        except ActionError:
-            logging.warning("Unable to disarm, may already be disarmed.")
+        while self.drone.vehicle.armed:
+            await asyncio.sleep(0.5)
 
         logging.info("Land state complete.")
         return
