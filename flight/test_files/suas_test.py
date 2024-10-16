@@ -46,7 +46,6 @@ async def run() -> None:
     # wait for drone to take off
     await asyncio.sleep(60)
 
-    accuracy_mod: float = 0.83
     obj_altitude: float = 12
     points: list[tuple[float, float]] = [
         (38.31413, -76.54352),
@@ -62,7 +61,7 @@ async def run() -> None:
 
     point: tuple[float, float]
     for point in points:
-        await move_to(drone.vehicle, point[0], point[1], obj_altitude, accuracy_mod)
+        await move_to(drone.vehicle, point[0], point[1], obj_altitude)
 
     # return home
     drone.vehicle.mode = dronekit.VehicleMode("RTL")
