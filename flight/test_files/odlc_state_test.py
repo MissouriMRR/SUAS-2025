@@ -23,6 +23,10 @@ async def run_test(_sim: bool, odlc_count: int = 5) -> None:
     """
     logging.basicConfig(level=logging.INFO)
     drone: Drone = Drone()
+    if _sim:
+        drone.use_sim_settings()
+    else:
+        drone.use_real_settings()
     flight_settings: FlightSettings = FlightSettings(sim_flag=_sim, skip_waypoint=True)
     await drone.connect_drone()
     state_task: asyncio.Task[None] = asyncio.ensure_future(
