@@ -21,7 +21,7 @@ async def run() -> None:
     logging.info("Creating the drone")
     # create a drone object
     drone: Drone = Drone()
-    drone.use_real_settings()
+    drone.use_sim_settings()
     await drone.connect_drone()
 
     # initilize drone configurations
