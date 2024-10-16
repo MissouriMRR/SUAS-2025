@@ -4,15 +4,16 @@ from vision.common.constants import CameraParameters, Point
 from vision.common.bounding_box import BoundingBox
 from vision.deskew import get_coordinates, bounding_area, calculate_distance
 
+
 class TestVisionFunctions(unittest.TestCase):
-    
+
     def setUp(self):
         # Set up the camera parameters and other constants for each test to avoid cross-contamination
         self.camera_params = CameraParameters(
             focal_length=35.0,
             rotation_deg=[0, 0, 0],
             drone_coordinates=[37.7749, -122.4194],
-            altitude_f=1000.0  
+            altitude_f=1000.0,
         )
         self.image_shape = (1080, 1920, 3)  # Image size with 3 color channels
 
@@ -31,9 +32,7 @@ class TestVisionFunctions(unittest.TestCase):
         self.camera_params.drone_coordinates = [0, 0, 100]
         self.camera_params.altitude_f = 100.0
 
-        self.box = BoundingBox(
-            vertices=[(100, 200), (200, 200), (200, 300), (100, 300)]
-        )
+        self.box = BoundingBox(vertices=[(100, 200), (200, 200), (200, 300), (100, 300)])
         expected_area = 10000  # Example expected area for given parameters
         result = bounding_area(self.box, self.image_shape, self.camera_params)
         self.assertAlmostEqual(result, expected_area, msg="Bounding area calculation failed")
@@ -45,6 +44,6 @@ class TestVisionFunctions(unittest.TestCase):
         result = calculate_distance(pixel1, pixel2, self.image_shape, self.camera_params)
         self.assertIsNone(result, "Result should be None for invalid pixel coordinates")
 
-if __name__ == '__main__':
-    unittest.main()
 
+if __name__ == "__main__":
+    unittest.main()
