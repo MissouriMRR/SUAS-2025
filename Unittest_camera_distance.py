@@ -18,7 +18,7 @@ class TestVisionFunctions(unittest.TestCase):
         )
         self.image_shape = (1080, 1920, 3)  # Image size with 3 color channels
 
-    def test_get_coordinates(self)-> None:
+    def test_get_coordinates(self) -> None:
         # Test the coordinates calculation at the center of the image
         center_pixel = (960, 540)
         expected_coordinates = (37.77, -122.211)
@@ -27,7 +27,7 @@ class TestVisionFunctions(unittest.TestCase):
         self.assertAlmostEqual(result[0], expected_coordinates[0], places=2)
         self.assertAlmostEqual(result[1], expected_coordinates[1], places=2)
 
-    def test_bounding_area(self)-> None:
+    def test_bounding_area(self) -> None:
         # Test bounding area calculation with a specific scenario
         self.camera_params.rotation_deg = [0, 0, 0]
         self.camera_params.drone_coordinates = [0, 0, 100]
@@ -38,7 +38,7 @@ class TestVisionFunctions(unittest.TestCase):
         result = bounding_area(self.box, self.image_shape, self.camera_params)
         self.assertAlmostEqual(result, expected_area, msg="Bounding area calculation failed")
 
-    def test_calculate_distance_invalid(self)-> None:
+    def test_calculate_distance_invalid(self) -> None:
         # Test calculate distance with invalid pixel coordinates
         pixel1 = (100, 100)
         pixel2 = (-10, -10)  # Invalid pixel
