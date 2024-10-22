@@ -108,6 +108,5 @@ def flyover_pipeline(camera_data_path: str) -> None:
 
 
 logging.basicConfig(filename="/dev/stdout", level=logging.INFO)
-#flyover_pipeline("flight/data/camera.json")
+# flyover_pipeline("flight/data/camera.json")
 flyover_pipeline("camera.json")
-
