@@ -32,9 +32,10 @@ class TestVisionFunctions(unittest.TestCase):
         self.camera_params.rotation_deg = [0, 0, 0]
         self.camera_params.drone_coordinates = [0, 0, 100]
         self.camera_params.altitude_f = 100.0
-
-        self.box = BoundingBox(vertices=[(100, 200), (200, 200), (200, 300), (100, 300)])
-        expected_area = 10000  # Example expected area for given parameters
+        self.box = BoundingBox(obj_type='rectangle', vertices=(
+            (100, 200), (200, 200), (200, 300),(100,300)
+        ))
+        expected_area = 10000 # area for given parameters
         result = bounding_area(self.box, self.image_shape, self.camera_params)
         self.assertAlmostEqual(result, expected_area, msg="Bounding area calculation failed")
 
