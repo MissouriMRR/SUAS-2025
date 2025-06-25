@@ -1,17 +1,1 @@
-{
-    "Default" : {
-        "sensorHeight": 0,
-        "sensorWidth": 0,
-        "horizontalFOV": 1.41372,
-        "verticalFOV": 0.797528202,
-        "focal_length": 21
-    },
-    "Airsim":{
-        "sensorHeight": 0,
-        "sensorWidth": 0,
-        "horizontalFOV": 0,
-        "verticalFOV": 0,
-        "focal_length": 0
-    },
-    "airsim_flag": false
-}
+{"Default": {"sensorHeight": 0, "sensorWidth": 0, "horizontalFOV": 1.41372, "verticalFOV": 0.797528202, "focal_length": 21}, "Airsim": {"sensorHeight": 0, "sensorWidth": 0, "horizontalFOV": 1.57079633, "verticalFOV": 1.02477892062147, "focal_length": 0}, "airsim_flag": true}

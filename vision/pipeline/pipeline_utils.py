@@ -6,7 +6,7 @@ import vision.common.constants as consts
 
 from vision.common.bounding_box import BoundingBox
 
-from vision.deskew.camera_distances import get_coordinates
+from vision.deskew.coordinate_lengths import get_coordinates
 from vision.yolo.model import ObjectDetection
 
 # We only care about the object classes that will actually appear in the competition

@@ -128,11 +128,21 @@ async def find_odlcs(self: ODLC, capture_status: asyncio.Event) -> None:
 
     logging.info("Starting odlc zone flyover")
 
+    # Go to first point quickly and without taking pictures
+    first_point = gps_data["odlc_waypoints"][0]
+    await move_to(
+        self.drone.vehicle,
+        first_point.latitude,
+        first_point.longitude,
+        gps_data["odlc_altitude"],
+        airspeed=25,
+    )
+
     # traverses the 3 waypoints starting at the midpoint on left to midpoint on the right
     # then to the top left corner at the rectangle
     i: int
     point: OdlcWaypoint
-    for i, point in enumerate(gps_data["odlc_waypoints"]):
+    for i, point in enumerate(gps_data["odlc_waypoints"], start=1):
         take_photos: bool = True
 
         logging.info("Moving to ODLC scan point %d", i)

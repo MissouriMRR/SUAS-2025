@@ -1,13 +1,13 @@
 {
-    "state": "Takeoff",
+    "state": "Airdrop",
     "drone": {
         "address": "tcp:127.0.0.1:5762",
-        "odlc_scan": true
+        "odlc_scan": false
     },
     "flight_settings": {
         "simple_takeoff": false,
         "title": "SUAS Test Flight",
-        "description": "Test flight for SUAS 2023",
+        "description": "Test flight for SUAS 2025",
         "waypoint_count": 0,
         "sim_flag": false,
         "path_data_path": ""

@@ -2,74 +2,32 @@
 
 import numpy as np
 
-from vision.common.constants import Point, CameraParameters
+from vision.common.constants import Corners, Point, CameraParameters, FEET_PER_METER
 from vision.common.bounding_box import BoundingBox
 
 from vision.deskew import coordinate_lengths
 from vision.deskew import vector_utils
+from vision.deskew.deskew import get_corner_points
+from flight.waypoint.calculate_distance import calculate_distance as coordinate_calculate_distance
 
 
-def get_coordinates(
-    pixel: tuple[int, int],
-    image_shape: tuple[int, int, int] | tuple[int, int],
-    camera_parameters: CameraParameters,
-) -> tuple[float, float] | None:
-    """
-    Calculates the coordinates of the given pixel.
-    Returns None if there is no valid intersect.
+def corner_coords(image_shape, camera_parameters) -> Corners:
 
-    Parameters
-    ----------
-    pixel: tuple[int, int]
-        The coordinates of the pixel in [X, Y] form
-    image_shape : tuple[int, int, int] | tuple[int, int]
-        The shape of the image (returned by `image.shape` when image is a numpy image array)
-    camera_parameters: CameraParameters
-        The details on how and where the photo was taken
-        rotation_deg: list[float]
-            The rotation of the drone in degrees. The constant ROTATION_OFFSET of the
-            camera, stored in constants.py, will be applied first
-        drone_coordinates: list[float]
-            The coordinates of the drone in degrees of (latitude, longitude)
-        altitude: float
-            The altitude of the drone in meters
-
-    Returns
-    -------
-    pixel_coordinates : tuple[float, float] | None
-        The (latitude, longitude) coordinates of the pixel in degrees.
-        Equal to None if there is no valid intersect.
-    """
-
-    # Calculate the latitude and longitude lengths (in meters)
-    latitude_length: float = coordinate_lengths.latitude_length(
-        camera_parameters["drone_coordinates"][0]
-    )
-    longitude_length: float = coordinate_lengths.longitude_length(
-        camera_parameters["drone_coordinates"][0]
+    coordinate_list = [
+        coordinate_lengths.get_coordinates(point, image_shape, camera_parameters)
+        for point in get_corner_points(image_shape)
+    ]
+    for coordinate in coordinate_list:
+        if coordinate == None:
+            raise ValueError(
+                "One or more of the coordinates are zero, ensure that the image rotation is downward"
+            )
+    coords: Corners = np.array(
+        coordinate_list,
+        dtype=np.float64,
     )
 
-    altitude_m: float = camera_parameters["altitude"]
-
-    # Find the pixel's intersect with the ground to get the location relative to the drone
-    intersect: Point | None = vector_utils.pixel_intersect(
-        pixel,
-        image_shape,
-        camera_parameters["rotation_deg"],
-        altitude_m,
-    )
-
-    if intersect is None:
-        return None
-
-    # Invert the X axis so that the longitude is correct
-    intersect[1] *= -1
-
-    # Convert the location to latitude and longitude and add it to the drone's coordinates
-    pixel_lat: float = camera_parameters["drone_coordinates"][0] + intersect[0] / latitude_length
-    pixel_lon: float = camera_parameters["drone_coordinates"][1] + intersect[1] / longitude_length
-
-    return pixel_lat, pixel_lon
+    return coords
 
 
 def bounding_area(
@@ -178,3 +136,25 @@ def calculate_distance(
     distance: float = float(np.linalg.norm(intersect1 - intersect2))
 
     return distance
+
+
+def pixel_per_foot(
+    image_shape: tuple[int, int, int] | tuple[int, int], camera_parameters: CameraParameters
+) -> float:
+    Corner_list: Corners = corner_coords(image_shape, camera_parameters)
+
+    # using this calculate distance instead so it will use coordinates instead of having to parse the image data makes it a little faster
+    # returning in feet pls change this at some point
+    # uisng the top left and top right parts of the image
+    return (
+        image_shape[1]
+        / (
+            (np.tan(vector_utils.get_fov()[0] / 2))
+            * FEET_PER_METER
+            * camera_parameters["altitude"]
+            * 2
+        )
+        * 0.4
+    )
+    # print(coordinate_calculate_distance(Corner_list[0][0], Corner_list[0][1], 0, Corner_list[1][0], Corner_list[1][1], 0))
+    # return (image_shape[1]/(FEET_PER_METER*coordinate_calculate_distance(Corner_list[0][0], Corner_list[0][1], 0, Corner_list[1][0], Corner_list[1][1], 0)))

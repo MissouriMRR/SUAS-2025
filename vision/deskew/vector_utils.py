@@ -1,5 +1,6 @@
 """Functions that use vectors to calculate camera intersections with the ground"""
 
+import math
 import json
 
 import numpy as np
@@ -7,11 +8,6 @@ from scipy.spatial.transform import Rotation
 
 from utils import type_utils
 from vision.common.constants import Point, Vector, CameraConfig
-
-
-# Vector pointing toward the +X axis, represents the camera's forward direction when the
-#   rotation on all axes is 0
-IHAT: Vector = np.array([1, 0, 0], dtype=np.float64)
 
 
 def pixel_intersect(
@@ -31,7 +27,7 @@ def pixel_intersect(
     image_shape : tuple[int, int, int] | tuple[int, int]
         The shape of the image (returned by image.shape when image is a numpy image array)
     rotation_deg : list[float]
-        The [roll, pitch, yaw] rotation of the drone in degrees
+        The [roll, pitch, yaw] rotation of the camera in degrees
     height : float
         The height that the image was taken at. The units of the output will be the units of the
         input.
@@ -39,25 +35,34 @@ def pixel_intersect(
     Returns
     -------
     intersect : Point | None
-        The coordinates [X,Y] where the pixel's vector intersects with the ground. Units
-            are the same as `height`
+        The coordinates/distance [X,Y,Z] where the pixel's vector intersects with the ground. Units
+            are the same as the units of `height`
         Returns None if there is no intersect.
     """
 
-    # Create the normalized vector representing the direction of the given pixel
+    # Get the vector that points to the pixel
+    # This will have a negative z since it is pointing at the projected image on the xy plane
     vector: Vector = pixel_vector(pixel, image_shape)
 
-    # Apply the drone rotation
-    vector = rotate_degrees(vector, rotation_deg)
+    # Fix the pitch of the photo due to gimbal pointing down
+    gimbal_rotation: list[float] = [rotation_deg[0], rotation_deg[1] + 90, rotation_deg[2]]
+
+    # Apply the rotation of the drone to the vector
+    vector = rotate_degrees(vector, gimbal_rotation)
+
+    # This needs to be applied as unlike the usual x and y axis, y is flipped
+    # This should only be applied in pixel_intersect and not get_coordinates!!!
+    vector[1] *= -1
 
     intersect: Point | None = plane_collision(vector, height)
 
     return intersect
 
 
-def plane_collision(ray_direction: Vector, height: float) -> Point | None:
+def plane_collision(ray_direction: Vector, height: float, cutoff_ratio: float = 0) -> Point | None:
     """
-    Returns the point where a ray intersects the XY plane. North is +X
+    Returns the vector where where the vector intersects with the plane
+    The input vector is in XYZ and returns and XYZ vector with z equal to the height
     Returns None if there is no intersect.
 
     Parameters
@@ -66,26 +71,45 @@ def plane_collision(ray_direction: Vector, height: float) -> Point | None:
         XYZ coordinates that represent the direction a ray faces
     height : float
         The Z coordinate for the starting height of the ray; can be any units
+    cutoff_ratio: float = 0
+        basically the ratio of z in the xyz vector where any vector less than it will get cutoff
+        Not essential, but is used to prevent warping and cutoff nearing no height of the image
+        aka they are getting closer to infinity horizontal distance for the vertical
+        Ratio is roughly(not exact) if .1 then distance to the corner is 10 times as
+        large as the distance to the camera and lower ratio means less quality of pixel
+        default is 0 to allow near infinite intersects with the plane
 
     Returns
     -------
     intersect : Point | None
-        The ray's intersection with the plane in [X,Y] format. Units are the same as
-        `height`
+        The ray's intersection with the plane in [X,Y,Z] format.
+        Z is the height and Units are the same as `height`
         Returns None if there is no intersect.
     """
 
-    # Find the "time" at which the line intersects the plane.
-    # Line is defined as ray_direction * time + vertex. Vertex is the point at
-    #   X, Y, Z = (0, 0, height)
-    time: float = -height / ray_direction[2].item()
+    # negative Z is down towards the ground I think,
+    # so as long as Z is negative then the vector is valid
+    # however if the Z is so small that it is negligible is probably
+    # not the best due to warping and annoyance
+    # like a vector at 89 degrees from the plane will not give good results at all
+
+    # normalize cause this how that goes
+    intersect = ray_direction / np.linalg.norm(ray_direction)
+    intersect = np.round(intersect, decimals=6)
 
     # Checks if the ray intersects with the plane - negative `time` means the intersection
     #   is behind the camera
-    if np.isinf(time) or np.isnan(time) or time < 0:
+
+    if intersect[2] > (cutoff_ratio * -1) or np.isnan(intersect[2]) or intersect[2] is None:
         return None
 
-    intersect: Point = ray_direction[:2] * time
+    # if no height to the image the camera is in plane so instanetaneous intersecting
+    if intersect[2] == 0:
+        return np.array([0, 0, 0], dtype=np.float64)
+
+    # sets the z of the vector equal to negative height and scales the rest of the vector with it
+    intersect = abs(height / intersect[2]) * intersect
+    intersect = np.round(intersect, decimals=6)
 
     return intersect
 
@@ -115,6 +139,7 @@ def pixel_vector(
     fov_h: float
     fov_v: float
     fov_h, fov_v = get_fov()
+
     vector: Vector = camera_vector(
         pixel_angle(fov_h, pixel[0] / image_shape[1]),
         pixel_angle(fov_v, pixel[1] / image_shape[0]),
@@ -142,8 +167,10 @@ def pixel_angle(fov: float, ratio: float) -> float:
     Returns
     -------
     angle : float
-        The pixel's angle from the center of the camera along a single axis
+        The pixel's angle from the center of the camera along a single axis.
+        The horizontal angle will be reversed
     """
+
     return np.arctan(np.tan(fov / 2) * (1 - 2 * ratio))
 
 
@@ -167,7 +194,7 @@ def get_fov() -> tuple[float, float]:
             else:
                 h_fov = calculate_fov("Airsim", "horizontalFOV")
 
-            if camera_config["Airsim"]["horizontalFOV"] != 0:
+            if camera_config["Airsim"]["verticalFOV"] != 0:
                 v_fov = camera_config["Airsim"]["verticalFOV"]
             else:
                 v_fov = calculate_fov("Airsim", "verticalFOV")
@@ -177,7 +204,7 @@ def get_fov() -> tuple[float, float]:
             else:
                 h_fov = calculate_fov("Default", "horizontalFOV")
 
-            if camera_config["Default"]["horizontalFOV"] != 0:
+            if camera_config["Default"]["verticalFOV"] != 0:
                 v_fov = camera_config["Default"]["verticalFOV"]
             else:
                 v_fov = calculate_fov("Default", "verticalFOV")
@@ -249,11 +276,14 @@ def camera_vector(h_angle: float, v_angle: float) -> Vector:
     camera_vector : Vector
         The vector which represents a given location in an image
     """
+    # We know photos are being taken straight down, so the z axis is set to -1
+    # After that we can use the tangent of the angle of each axis to get the resulting
+    # vector pointing towards the pixel in the image
 
-    # Calculate the vertical rotation needed for the final vector to have the desired direction
-    edge: float = edge_angle(v_angle, h_angle)
+    vector: Vector = np.array([math.tan(-h_angle), math.tan(v_angle), -1], dtype=np.float64)
+    vector = vector / np.linalg.norm(vector)
 
-    vector: Vector = rotate_radians(IHAT, [0, edge, -h_angle])
+    vector = np.round(vector, decimals=6)
 
     return vector
 
@@ -330,9 +360,10 @@ def rotate_radians(vector: Vector, rotation_rad: list[float]) -> Vector:
     """
 
     # Reverse the Y and Z rotation to match MAVSDK convention
-    rotation_rad[1] *= -1
+    rotation_rad[0] *= -1
     rotation_rad[2] *= -1
 
-    result: Vector = Rotation.from_euler("xyz", rotation_rad).apply(np.array(vector))
+    rotation = Rotation.from_euler("xyz", rotation_rad)
+    result: Vector = rotation.apply(np.array(vector))
 
     return result

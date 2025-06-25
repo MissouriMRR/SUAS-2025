@@ -231,7 +231,7 @@ async def attempt_drop(
         with open("flight/data/attempted_drops.json", "w", encoding="utf8") as file:
             json.dump(list(attempted_locations), file)
 
-        await asyncio.sleep(12)
+        await asyncio.sleep(9)
 
         # Attempt to wiggle out stuck beacons
         logging.info("Moving up to 75 ft / 23 meters...")

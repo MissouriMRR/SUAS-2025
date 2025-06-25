@@ -29,6 +29,7 @@ from vision.common import camera_config
 MAPPING_ALTITUDE: Final[float] = 30  # meters
 HORIZONTAL_PHOTO_SPACING: Final[float] = 15  # meters
 VERTICAL_PHOTO_SPACING: Final[float] = 15  # meters
+MAPPING_AIRSPEED: Final[float] = 10  # meters per second
 
 
 async def run(self: Mapping) -> State:
@@ -98,7 +99,26 @@ async def run(self: Mapping) -> State:
             camera = CameraAirSim()
         else:
             camera = None
+
         reverse_direction: bool = False
+
+        # Go to first point without taking pictures
+        first_easting: float
+        first_northing: float
+        if not reverse_direction:
+            first_easting = mapping_boundary_utm[0].easting
+            first_northing = mapping_boundary_utm[0].northing
+        else:
+            first_easting = mapping_boundary_utm[3].easting
+            first_northing = mapping_boundary_utm[3].northing
+
+        first_lat: float
+        first_lon: float
+        first_lat, first_lon = utm.to_latlon(
+            first_easting, first_northing, utm_zone_number, utm_zone_letter
+        )
+        await move_to(self.drone.vehicle, first_lat, first_lon, MAPPING_ALTITUDE, airspeed=25)
+
         for i in range(step_count + 1):
             lerp_t = i / step_count
 
@@ -126,17 +146,13 @@ async def run(self: Mapping) -> State:
             lat, lon = utm.to_latlon(
                 start_easting, start_northing, utm_zone_number, utm_zone_letter
             )
-            await move_to(self.drone.vehicle, lat, lon, MAPPING_ALTITUDE)
+            await move_to(self.drone.vehicle, lat, lon, MAPPING_ALTITUDE, airspeed=MAPPING_AIRSPEED)
 
             lat, lon = utm.to_latlon(end_easting, end_northing, utm_zone_number, utm_zone_letter)
 
             if camera is not None:
                 await camera.mapping_move_to(
-                    self.drone.vehicle,
-                    lat,
-                    lon,
-                    MAPPING_ALTITUDE,
-                    HORIZONTAL_PHOTO_SPACING,
+                    self.drone.vehicle, lat, lon, MAPPING_ALTITUDE, HORIZONTAL_PHOTO_SPACING
                 )
 
             reverse_direction = not reverse_direction

@@ -11,7 +11,7 @@ import dronekit
 from flight.waypoint.calculate_distance import calculate_distance
 
 # Waypoint tolerance in meters: 6 meters = 19.685 feet
-WAYPOINT_TOLERANCE: int = 6
+WAYPOINT_TOLERANCE: int = 12
 
 
 # duplicate code disabled since we may want different functionality

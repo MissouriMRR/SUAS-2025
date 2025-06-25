@@ -38,6 +38,7 @@ onnxruntime = "^1.20.1"
 dronekit = {url = "https://github.com/MissouriMRR/docs/raw/refs/heads/main/subteams/flight/installation_guide/dronekit-2.9.2-py310-none-any.whl"}
 torch = {version = "^2.6.0", source = "pytorch"}
 airsim = {git = "https://github.com/heitmeih/AirSim-fixed-pyinstall", rev = "main", subdirectory = "PythonClient"}
+geographiclib = "^2.0"
 
 [tool.poetry.group.dev]
 optional = true
