@@ -299,4 +299,4 @@ if __name__ == "__main__":
     img: Image = cv2.imread(file_name)
 
     # NOTE: to test an image, specify the bounds of the text in the image here
-    bbox = BoundingBox(vertices=((0, 0), (10, 0), (10, 10), (0, 10)), obj_type="text")
+    bbox = BoundingBox((0, 0), 10, 10)

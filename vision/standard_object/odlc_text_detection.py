@@ -116,10 +116,7 @@ def text_detection(base_img: Image) -> BoundingBox:
         tlwh_to_vertices(text_x, text_y, text_width, text_height)
     )
 
-    text_attributes: dict[str, str] = {"text": found_text}
-    text_with_bounds: BoundingBox = BoundingBox(
-        vertices=text_bounds, attributes=text_attributes, obj_type="text"
-    )
+    text_with_bounds: BoundingBox = BoundingBox(text_bounds[0], text_width, text_height)
 
     return text_with_bounds
 
@@ -133,10 +130,9 @@ if __name__ == "__main__":
 
     # Testing coordinates
     test_bounds: BoundingBox = BoundingBox(
-        ((740, 440), (820, 440), (820, 500), (740, 500)), "object"
+        (740, 440), 80, 60
     )  # Coords for the A in the star of the 2022 image
 
     read_text: BoundingBox = get_odlc_text(img)
 
-    print("The following character was detected: " + read_text.get_attribute("text"))
-    print("Text bounds are: " + str(read_text.vertices))
+    print("bounds are: ", str(read_text.vertices))

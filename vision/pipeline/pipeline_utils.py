@@ -73,8 +73,7 @@ def flyover_finished(state_path: str) -> bool:
 
 def set_generic_attributes(
     box: BoundingBox,
-    image_path: str,
-    image_shape: consts.ImageShape,
+    image_shape: tuple[int, int] | tuple[int, int, int],
     camera_parameters: consts.CameraParameters,
 ) -> bool:
     """
@@ -100,8 +99,6 @@ def set_generic_attributes(
         Returns true if all attributes were successfully found
     """
 
-    box.set_attribute("image_path", image_path)
-
     coordinates: tuple[float, float] | None = get_coordinates(
         box.get_center_coord(), image_shape, camera_parameters
     )
@@ -109,8 +106,7 @@ def set_generic_attributes(
     if coordinates is None:
         return False
 
-    box.set_attribute("latitude", coordinates[0])
-    box.set_attribute("longitude", coordinates[1])
+    box.center_lat_lon = coordinates
 
     return True
 
@@ -154,9 +150,11 @@ def detection_to_bbox(
         (detection.bbox[0], detection.bbox[3]),
     )
 
-    bbox = BoundingBox(vertices, detection.category)
+    bbox = BoundingBox(
+        vertices[0], detection.bbox[2] - detection.bbox[0], detection.bbox[3] - detection.bbox[1]
+    )
 
-    set_generic_attributes(bbox, detection.image, detection.shape, parameters)
+    set_generic_attributes(bbox, detection.shape, parameters)
 
     return bbox
 

@@ -5,6 +5,7 @@ are used to convey information between flight and vision processes.
 
 from typing import Any, TypeAlias
 
+
 import numpy as np
 
 # A set of 4 coordinates that distinguish a region of an image.
@@ -14,14 +15,14 @@ Vertices: TypeAlias = tuple[tuple[int, int], tuple[int, int], tuple[int, int], t
 
 def tlwh_to_vertices(tl_x: int, tl_y: int, width: int, height: int) -> Vertices:
     """
-    Gets the vertices of a bounding box from a coordinate, width, and height.
+    Gets the vertices of a bounding box from a pixel, width, and height.
 
     Parameters
     ----------
     tl_x : int
-        the top-left x coordinate of the bounding box
+        the top-left x pixels of the bounding box
     tl_y : int
-        the top-left y coordinate of the bounding box
+        the top-left y pixel of the bounding box
     width : int
         the width of the bounding box
     height : int
@@ -30,11 +31,12 @@ def tlwh_to_vertices(tl_x: int, tl_y: int, width: int, height: int) -> Vertices:
     Returns
     -------
     vertices : Vertices
-        Denotes the 4 coordinates representing a box in an image.
-        Vertices is a tuple of 4 coordinates.
-        Each coordinate consists of a tuple 2 integers.
+        Denotes the 4 pixels representing a box in an image.
+        Vertices is a tuple of 4 pixels.
+        Each pixel consists of a tuple 2 integers.
         Order is (top-left, top-right, bottom-right, bottom-left).
     """
+
     tl_coord: tuple[int, int] = (tl_x, tl_y)  # top left
     tr_coord: tuple[int, int] = (tl_x + width, tl_y)  # top right
     br_coord: tuple[int, int] = (tl_x + width, tl_y + height)  # bottom right
@@ -45,168 +47,59 @@ def tlwh_to_vertices(tl_x: int, tl_y: int, width: int, height: int) -> Vertices:
 
 class BoundingBox:
     """
-    A set of 4 coordinates that distinguish a region of an image.
-    The order of the coordinates is (top-left, top-right, bottom-right, bottom-left).
+    A set of 4 pixels that distinguish a region of an image.
+    The top-left pixel, width, and height are used to create the
+    BoundingBox.
+
+    Attributes
+    ----------
+    center_lat_lon : tuple[float, float]
+        the center latitude (center_lat_lon[0]) and longitude(center_lat_long[1]) of what the bounding box highlights
 
     Parameters
     ----------
-    vertices : Vertices
-        The main structure of the BoundingBox. Denotes the 4 coordinates
-        representing a box in an image. Vertices is a tuple of 4 coordinates. Each
-        coordinate consists of a tuple 2 integers.
-    obj_type : str
-         What object the BoundingBox represents.
-    attributes : dict[str, Any] | None
-        Any additional attributes to convey about the object in the BoundingBox.
+    top_left : tuple[int, int]
+        The top-left pixel of the BoundingBox.
+    width : int
+        The width of the BoundingBox.
+    height : int
+        The height of the BoundingBox.
     """
 
-    def __init__(
-        self,
-        vertices: Vertices,
-        obj_type: str,
-        attributes: dict[str, Any] | None = None,
-    ) -> None:
-        self._vertices: tuple[
-            tuple[int, int], tuple[int, int], tuple[int, int], tuple[int, int]
-        ] = vertices
-        self._obj_type: str = obj_type
-        self._attributes: dict[str, Any] = attributes if attributes is not None else {}
+    center_lat_lon: tuple[float, float]
 
-    def __repr__(self) -> str:
-        """
-        Returns a string representation of the BoundingBox
-        that contains its id, object type, and vertices.
+    def __init__(self, top_left: tuple[int, int], width: int, height: int) -> None:
+        self.top_left: tuple[int, int] = top_left
+        self.width: int = width
+        self.height: int = height
 
-        Returns
-        -------
-        str
-            the string representation of the BoundingBox object
-        """
-        return f"BoundingBox[{id(self)}, {self.obj_type}]: {str(self._vertices)}"
-
-    @property
-    def vertices(self) -> Vertices:
-        """
-        Getter for _vertices. Gets the 4 vertices that make up the BoundingBox.
-
-        Returns
-        -------
-        _vertices : Vertices
-            The 4 coordinates of the BoundingBox.
-        """
-        return self._vertices
-
-    @vertices.setter
-    def vertices(self, verts: Vertices) -> None:
-        """
-        Setter for _vertices. Sets the 4 vertices that make up the BoundingBox.
-
-        Parameters
-        ----------
-        vert : Vertices
-            The 4 coordinates to assign to the BoundingBox.
-        """
-        self._vertices = verts
-
-    @property
-    def obj_type(self) -> str:
-        """
-        Getter for _obj_type. Gets the ObjectType of the BoundingBox.
-
-        Returns
-        -------
-        _obj_type : str
-            The ObjectType of the BoundingBox.
-        """
-        return self._obj_type
-
-    @obj_type.setter
-    def obj_type(self, o_type: str) -> None:
-        """
-        Setter for _obj_type. Sets the value of the BoundingBox's ObjectType.
-
-        Parameters
-        ----------
-        o_type : str
-            The ObjectType to assign to the BoundingBox.
-        """
-        self._obj_type = o_type
-
-    @property
-    def attributes(self) -> dict[str, Any]:
-        """
-        Getter for _attributes. Gets the additional attributes of the BoundingBox.
-
-        Returns
-        -------
-        _attributes : dict[str, Any]
-            Any additional attributes of the BoundingBox.
-        """
-        return self._attributes
-
-    @attributes.setter
-    def attributes(self, att: dict[str, Any]) -> None:
-        """
-        Setter for _attributes. Sets the value of the BoundingBox's additional attributes.
-
-        Parameters
-        ----------
-        att : dict[str, Any]
-            The additional attributes to assign to the BoundingBox.
-        """
-        self._attributes = att
-
-    def set_attribute(self, attribute_name: str, attribute: Any) -> None:
-        """
-        Sets an attribute of the BoundingBox.
-
-        Parameters
-        ----------
-        attribute_name : str
-            the name of the attribute
-        attribute : Any
-            the value to set the attribute to, which can be of any type
-        """
-        self.attributes[attribute_name] = attribute
-
-    def get_attribute(self, attribute_name: str) -> Any:
-        """
-        Gets an attribute of the BoundingBox.
-
-        Parameters
-        ----------
-        attribute_name : str
-            the name of the attribute
-
-        Returns
-        -------
-        attribute : Any
-            the value of the attribute, which can be of any type
-        """
-        return self.attributes[attribute_name]
+        # Calculate the 4 vertices of the bounding box
+        self.vertices: Vertices = tlwh_to_vertices(top_left[0], top_left[1], width, height)
 
     def get_x_vals(self) -> list[int]:
         """
-        Gets the x values of the 4 coordinates.
+        Gets the x values of the 4 pixels.
 
         Returns
         -------
         x_vals : list[int]
             The 4 x values of the vertices.
         """
-        x_vals: list[int] = [vert[0] for vert in self._vertices]
+
+        x_vals: list[int] = [vert[0] for vert in self.vertices]
         return x_vals
 
     def get_y_vals(self) -> list[int]:
         """
-        Gets the y values of the 4 coordinates.
+        Gets the y values of the 4 pixels.
 
         Returns
         -------
         y_vals : list[int]
             The 4 y values of the vertices.
         """
-        y_vals: list[int] = [vert[1] for vert in self._vertices]
+
+        y_vals: list[int] = [vert[1] for vert in self.vertices]
         return y_vals
 
     def get_x_extremes(self) -> tuple[int, int]:
@@ -218,6 +111,7 @@ class BoundingBox:
         min_x, max_x : tuple[int, int]
             The minimum and maximum x values.
         """
+
         x_vals: list[int] = self.get_x_vals()
         min_x: int = np.amin(x_vals)
         max_x: int = np.amax(x_vals)
@@ -233,6 +127,7 @@ class BoundingBox:
         min_y, max_y : tuple[int, int]
             The minimum and maximum y values.
         """
+
         y_vals: list[int] = self.get_y_vals()
         min_y: int = np.amin(y_vals)
         max_y: int = np.amax(y_vals)
@@ -241,59 +136,39 @@ class BoundingBox:
 
     def get_x_avg(self) -> int:
         """
-        Gets the average x coordinate of the bounding box.
+        Gets the average x pixel of the bounding box.
 
         Returns
         -------
         average : int
-            the average of the 4 coordinates' x-values
+            the average of the 4 pixels' x-values
         """
+
         return int(np.mean(self.get_x_vals()))
 
     def get_y_avg(self) -> int:
         """
-        Gets the average y coordinate of the bounding box.
+        Gets the average y pixel of the bounding box.
 
         Returns
         -------
         average : int
-            the average of the 4 coordinates' y-values
+            the average of the 4 pixels' y-values
         """
+
         return int(np.mean(self.get_y_vals()))
 
     def get_center_coord(self) -> tuple[int, int]:
         """
-        Gets the coordinate of the center of the BoundingBox
+        Gets the pixel of the center of the BoundingBox
 
         Returns
         -------
         center_pt : tuple[int, int]
-            the coordinate point at the center of the bounding box
+            the pixel point at the center of the bounding box
         """
+
         return (self.get_x_avg(), self.get_y_avg())
-
-    def get_rotation_angle(self) -> float:
-        """
-        Calculates the angle of rotation of the BoundingBox
-        based on the top left and right coordinates.
-
-        Returns
-        -------
-        angle : float
-            The angle of rotation of the BoundingBox in degrees.
-        """
-        tl_x: int = self.vertices[0][0]
-        tr_x: int = self.vertices[1][0]
-        tl_y: int = self.vertices[0][1]
-        tr_y: int = self.vertices[1][1]
-
-        angle: float = 0
-        if tr_x - tl_x == 0:  # prevent division by 0
-            angle = 90.0 if (tr_y - tl_y > 0) else -90.0
-        else:
-            angle = np.rad2deg(np.arctan((tr_y - tl_y) / (tr_x - tl_x)))
-
-        return angle
 
     def get_width(self) -> int:
         """
@@ -304,6 +179,9 @@ class BoundingBox:
         width: int
             the width of the BoundingBox based on max and min x values.
         """
+
+        # Get the min and max x values, then calculate the width by subtracting
+        # the min from the max
         min_x: int
         max_x: int
         min_x, max_x = self.get_x_extremes()
@@ -320,6 +198,9 @@ class BoundingBox:
         height: int
             the height of the BoundingBox based on max and min x values.
         """
+
+        # Get the min and max y values, then calculate the height by
+        # subtracting the min from the max
         min_y: int
         max_y: int
         min_y, max_y = self.get_y_extremes()
@@ -336,68 +217,24 @@ class BoundingBox:
         (width, height) : tuple[int, int]
             the width and height of the bounding box
         """
+
         return self.get_width(), self.get_height()
-
-    def get_tlwh(self) -> tuple[int, int, int, int]:
-        """
-        Gets the BoundingBox formatted with top left coordinate, width, and height.
-
-        Returns
-        -------
-        tlwh_coord : tuple[int, int, int, int]
-            the bounding box in top left, width, height format
-
-            tl_x : int
-                the top-left x coordinate of the bounding box
-            tl_y : int
-                the top-left y coordinate of the bounding box
-            width : int
-                the width of the bounding box
-            height : int
-                the height of the bounding box
-        """
-        tl_x: int = self.vertices[0][0]
-        tl_y: int = self.vertices[0][1]
-        width: int = self.get_width()
-        height: int = self.get_height()
-
-        return tl_x, tl_y, width, height
 
 
 # Driver for testing functionality of BoundingBox object
 if __name__ == "__main__":
-    coordinates: Vertices = (
-        (0, 0),
-        (10, 0),
-        (10, 10),
-        (0, 10),
-    )
-    object_type: str = "object"
-    object_attributes: dict[str, Any] = {"shape": "triangle", "latitude": 89.9}
+
+    test_top_left: tuple[int, int] = (0, 0)
+    test_width: int = 39
+    test_height: int = 50
 
     # constructor
-    object_bounds = BoundingBox(
-        vertices=coordinates, obj_type=object_type, attributes=object_attributes
-    )
+    object_bounds = BoundingBox(top_left=test_top_left, width=test_width, height=test_height)
 
-    # repr
-    print(object_bounds)
-
-    # vertices
-    print("Vertices:", object_bounds.vertices)
-
-    # object type
-    print("Object Type:", object_bounds.obj_type)
-
-    # various ways to interact with attributes
-    print("Attributes:", object_bounds.attributes)
-    print("Shape Attribute:", object_bounds.attributes["shape"])
-
-    object_bounds.set_attribute("longitude", 120.3)
-    print("Longitude Attribute:", object_bounds.get_attribute("longitude"))
-
-    object_bounds.attributes["altitude"] = 50
-    print("Altitude Attribute:", object_bounds.attributes["altitude"])
+    # width, height
+    print("Width:", object_bounds.get_width())
+    print("Height:", object_bounds.get_height())
+    print("Width and Height:", object_bounds.get_width_height())
 
     # values, extremes, average
     print()
@@ -408,7 +245,6 @@ if __name__ == "__main__":
     print("X average:", object_bounds.get_x_avg())
     print("Y average:", object_bounds.get_y_avg())
 
-    # center and rotation
+    # center
     print()
-    print("Center coordinate:", object_bounds.get_center_coord())
-    print("Rotation angle:", object_bounds.get_rotation_angle())
+    print("Center pixel:", object_bounds.get_center_coord())

@@ -3,11 +3,7 @@
 import unittest
 from vision.common.constants import CameraParameters
 from vision.common.bounding_box import BoundingBox
-from vision.deskew.camera_distances import (
-    get_coordinates,
-    bounding_area,
-    calculate_distance,
-)
+from vision.deskew.camera_distances import get_coordinates, bounding_area, calculate_distance
 
 
 class TestVisionFunctions(unittest.TestCase):
@@ -38,8 +34,9 @@ class TestVisionFunctions(unittest.TestCase):
         )
         self.image_shape = (1080, 1920, 3)  # Image size with 3 color channels
         self.box = BoundingBox(
-            obj_type="object",
-            vertices=((100, 200), (200, 200), (200, 300), (100, 300)),
+            (100, 200),
+            100,
+            100,
         )
 
     def test_get_coordinates(self) -> None:
@@ -78,8 +75,9 @@ class TestVisionFunctions(unittest.TestCase):
             None: This method does not return a value but asserts the area calculation is correct.
         """
         self.box = BoundingBox(
-            obj_type="",
-            vertices=((100, 200), (200, 200), (200, 300), (100, 300)),
+            (100, 200),
+            100,
+            100,
         )
         result = bounding_area(self.box, self.image_shape, self.camera_params)
 

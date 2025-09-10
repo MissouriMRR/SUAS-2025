@@ -101,7 +101,6 @@ def process_shapes(contours: list[consts.Contour]) -> list[bbox]:
     """
     bbox_list: List[bbox] = []
     for contour in contours:
-        shape_type: chars.ODLCShape | None = classify_shape(np.copy(contour))
         vertices: consts.Corners
         min_x: int
         min_y: int
@@ -109,9 +108,7 @@ def process_shapes(contours: list[consts.Contour]) -> list[bbox]:
         height: int
         min_x, min_y, width, height = cv2.boundingRect(contour)
         vertices = tlwh_to_vertices(min_x, min_y, width, height)
-
-        bounding_box: bbox = bbox(vertices, "object", None)
-        bounding_box.set_attribute("shape", shape_type)
+        bounding_box: bbox = bbox(vertices[0], width, height)
         bbox_list.append(bounding_box)
     return bbox_list
 
