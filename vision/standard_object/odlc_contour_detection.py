@@ -11,8 +11,6 @@ from vision.common.constants import Contour, Hierarchy, Image, Mask, ScImage
 # Contour restriction constants
 MAX_CONTOUR_AREA: int = 10000
 MIN_CONTOUR_AREA: int = 300
-MAX_ASPECT_RATIO: float = 1.8
-MIN_SOLIDITY: float = 0.85
 MIN_PROPORTIONAL_AREA: float = 0.4
 
 # Contour detection constants
@@ -23,8 +21,8 @@ MAX_BLACK_VALUE: int = 0
 BRIGHTNESS_THRESH = 60
 MIN_SATURATION_VALUE: int = 185
 MIN_DARK_SATURATION_VALUE: int = 125
-BLUR_IMG_WEIGHT: float = 0.7
-NORMAL_IMG_WEIGHT: float = 0.3
+BLUR_IMG_WEIGHT: float = 0.8
+NORMAL_IMG_WEIGHT: float = 0.2
 
 
 def fetch_shape_contours(
@@ -121,18 +119,11 @@ def fetch_shape_contours(
 
         # calculates area inside contour in proportion to the area of the bounding rectangle
         proportional_area: float = area / (width * height)
-        aspect_ratio: float = max(float(width) / height, float(height) / width)
-
-        # calculates solidity/rigidity of shape (shapes with rougher sides have lower solidity)
-        solidity: float = area / (cv2.contourArea(cv2.convexHull(contour)))
 
         # saves the contour if the area is a reasonable size, reasonably close to a square,
         # is not extremely small compared to its bounding box, and does not have very rough edges.
-        if (
-            (MAX_CONTOUR_AREA >= cv2.contourArea(contour) >= MIN_CONTOUR_AREA)
-            and (aspect_ratio <= MAX_ASPECT_RATIO)
-            and (proportional_area >= MIN_PROPORTIONAL_AREA)
-            and (solidity >= MIN_SOLIDITY)
+        if (MAX_CONTOUR_AREA >= cv2.contourArea(contour) >= MIN_CONTOUR_AREA) and (
+            proportional_area >= MIN_PROPORTIONAL_AREA
         ):
             all_contours.append(contour)
 

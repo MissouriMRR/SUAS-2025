@@ -31,7 +31,7 @@ def preprocess_std_odlc(image: Image, thresh_min: int = 50, thresh_max: int = 10
 
     grayscaled: ScImage = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  # Convert to grayscale
 
-    blurred: ScImage = cv2.GaussianBlur(grayscaled, ksize=(3, 3), sigmaX=1.5)  # Blur the image
+    blurred: ScImage = cv2.GaussianBlur(grayscaled, ksize=(5, 5), sigmaX=1.5)  # Blur the image
 
     edges: ScImage = cv2.Canny(image=blurred, threshold1=thresh_min, threshold2=thresh_max)
 

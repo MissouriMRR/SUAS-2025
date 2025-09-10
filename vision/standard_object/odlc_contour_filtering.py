@@ -15,18 +15,8 @@ import vision.common.bounding_box as bbox
 MIN_SHAPE_PIXEL_LEN: int = 30
 # The minimum length/width (vertical/horizontal) a shape may have in pixels
 
-MIN_AREA_BOX_RATIO_RANGE: float = 0.5
-# The maximum acceptable range of aspect ratios (centered on a 1:1 ratio), so if 0.5 is the
-# given parameter then the aspect ratio between the length and width must be between 0.5 and
-# 1.5 (1 - 0.5 and 1 + 0.5). The default would correspond to a 2:1 or 1:2 aspect ratio range
-# the length/width vs. width/length does not matter. in test_min_area_box()
-
 BOX_AREA_RATIO_RANGE: float = 10.0
 # The minimum acceptable ratio of image area to contour bounding box area in test_bounding_box()
-
-ROUGHNESS_PERCENT_DIFF: float = 0.05
-# The max percent difference in area allowed between the original and approximaed contour
-# in test_roughness()
 
 
 def filter_contour(
@@ -74,29 +64,15 @@ def filter_contour(
         "object",
     )
 
-    # test smallness, bounding_box, min_area_box, and spikiness
+    # test smallness, self intersect, bounding_box, and spikiness
     if (
         (not test_smallness(cnt_bound_box))
         or (not test_self_intersect(approx_contour))
         or (not test_bounding_box(cnt_bound_box, image_dims))
-        or (not test_min_area_box(contour, MIN_AREA_BOX_RATIO_RANGE))
         or (not test_spikiness(contour))
     ):
         return (False, False)  # failed basic tests that should hold for all ODLC shapes
-
-    # run polygon specific test
-    if not test_roughness(contour, approx_contour):
-        # if polygon test fails run circle test
-        # use _generate_mask to get a mask of the shape then cvt bool image to UInt8
-        cnt_mask: consts.Mask = generate_mask(contour, cnt_bound_box)
-        cnt_sc_img: consts.ScImage = np.where(cnt_mask, 255, 0).astype(np.uint8)
-
-        if not test_circleness(cnt_sc_img):
-            return (False, False)  # failed polygon and circular tests
-
-        return (True, True)  # failed polygon test but passed circular test
-
-    return (True, False)  # passed polygon test so circular test skipped
+    return (True, False)  # passed ODLC tests so it is an object
 
 
 def test_smallness(bounding_box: bbox.BoundingBox) -> bool:
@@ -142,31 +118,6 @@ def test_self_intersect(approx: consts.Contour) -> bool:
     return bool(
         np.all(convex_hull[1:] >= convex_hull[:-1]) or np.all(convex_hull[0:-1] >= convex_hull[1:])
     )
-
-
-def test_min_area_box(contour: consts.Contour, ratio_range: float) -> bool:
-    """
-    Will create a box around the given contour that has the smallest possible area
-    (not necessarily upright) and check if the box's aspect ratio is within the given range
-
-    Parameters
-    ----------
-    contour : consts.Contour
-        The individual contour to be evaluated (as returned from cv2.findContours)
-    ratio_range : float
-        The range (from 1.0) that is acceptable
-
-    Returns
-    -------
-    acceptable_ratio : bool
-        Returns true if the aspect ratio of the min area box is inbetween the min and max
-    """
-    min_area_box: NDArray[Shape["4, 2"], Float32] = cv2.boxPoints(cv2.minAreaRect(contour))
-    # either length/width or width/length, does not matter
-    aspect_ratio: float = (cv2.norm(min_area_box[0] - min_area_box[1])) / (
-        cv2.norm(min_area_box[1] - min_area_box[2])
-    )
-    return 1 - ratio_range < aspect_ratio < 1 + ratio_range
 
 
 def test_bounding_box(bounding_box: bbox.BoundingBox, dims: tuple[int, int]) -> bool:
@@ -321,112 +272,6 @@ def generate_mask(contour: consts.Contour, box: bbox.BoundingBox) -> consts.Mask
     return mask
 
 
-def test_roughness(contour: consts.Contour, approx: consts.Contour) -> bool:
-    """
-    Will check how rough the sides of a shape are. If the contour is an actual shape, then it will
-    have relatively smooth sides, and the approximated contour will not have a lot of change. If
-    the contour is not actually a shape (ie a patch of grass), then its sides will be less
-    straight, and the polygon approximation will be very different from the original.
-    Also this should return false if the shape is circular (with appropriate threshold) because
-    a circle does not work well when ran through polygon approximation (should test extensively).
-
-    Parameters
-    ----------
-    contour : consts.Contour
-        The originally found contour to be evaluated (as returned from cv2.findContours)
-    approx : consts.Contour
-        The contour (same as contour param) but run through cv2.approxPolyDP()
-
-    Returns
-    -------
-    lacks_roughness : bool
-        Returns true if the non-overlapping area between the two contours is less than the
-        specified percentage of the original contour's area, false otherwise
-    """
-    # finds one box that will fit both shapes
-    box: bbox.BoundingBox = min_common_bounding_box([contour, approx])
-
-    # generates masks (single channel binary images/matricies) for both shapes with white being
-    # any point that is in the shape and black being everywhere else
-    # the dimensions of the masks will be the same (both equal to the dimensions of the previously
-    # found box)
-    contour_mask: consts.Mask = generate_mask(contour, box)
-    approx_mask: consts.Mask = generate_mask(approx, box)
-
-    # makes a new mask where white is any point that was in one shape but not the other
-    # aka a logical_xor between the two matricies of booleans
-    non_overlap_mask: consts.Mask = np.logical_xor(contour_mask, approx_mask)
-
-    # converts the boolean image to a single channel 8-bit image (still binarized with 0 and 255)
-    non_overlap_img: consts.ScImage = non_overlap_mask.astype(UInt8)
-    # detects all of the new shapes made by the xor operation
-    non_overlap_cnts: tuple[consts.Contour]
-    non_overlap_cnts, _ = cv2.findContours(non_overlap_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-    # sums the area of all of the non-overlapping portions of the shapes
-    non_overlap_area_sum: float = 0
-    for cnt in non_overlap_cnts:
-        non_overlap_area_sum += cv2.contourArea(cnt)
-
-    contour_area: float = cv2.contourArea(contour)
-    if (
-        len(non_overlap_cnts) == 0
-        or non_overlap_area_sum == 0
-        or 1 - ROUGHNESS_PERCENT_DIFF
-        < contour_area / non_overlap_area_sum
-        < 1 + ROUGHNESS_PERCENT_DIFF
-    ):
-        return True
-    return False
-
-
-def test_circleness(img: consts.ScImage) -> bool:
-    """
-    This function will test the cropped area around a given contour to see if it is a circle or if
-    it is not a circle, it uses the cv2.HoughCircles() function to check for a circle
-
-    Parameters
-    ----------
-    img : consts.ScImage
-        Img should be grayscale cropped box around contour and PROCESSED ALREADY
-        as in the image is binary with the contour filled in as white
-        NOTE: sc_image_type denotes a single channel image
-
-    Returns
-    -------
-    is_circular : bool
-        Returns true if circle of appropriate size is found (to reduce chance of false positives)
-
-    References
-    ----------
-    Blur kernel and sigmaX cv2.GaussianBlur() parameters recommended by opencv documentation
-    see:
-    docs.opencv.org/4.x/dd/d1a/group__imgproc__feature.html#ga47849c3be0d0406ad3ca45db65a25d2d
-    """
-    padding: int = int(img.shape[0] * 0.05)
-    modded: consts.ScImage = cv2.copyMakeBorder(
-        img, padding, padding, padding, padding, cv2.BORDER_CONSTANT, None, 0
-    )
-
-    modded = cv2.GaussianBlur(img, ksize=(7, 7), sigmaX=1.5)
-    # format is [[[center_x_1, center_y_1, radius_1], [center_x_2, center_y_2, radius_2], ...]]
-    circles: NDArray[Shape["1, *, 3"], Float32] | None = cv2.HoughCircles(
-        modded,
-        cv2.HOUGH_GRADIENT,
-        dp=1,
-        minDist=int(max(img.shape[0], img.shape[1])),
-        param1=50,
-        param2=30,
-        minRadius=int(min((img.shape[0], img.shape[1])) * 0.4),
-        maxRadius=int(min((img.shape[0], img.shape[1])) * 0.6),
-    )
-
-    if circles is None:
-        return False
-
-    return True
-
-
 # All of main is some basic testing code
 if __name__ == "__main__":
     # set to True and add points to raw_pts to test a polygon instead
@@ -494,15 +339,8 @@ if __name__ == "__main__":
         print(type(cntr_sc_img), type(cntr_sc_img[0]), type(cntr_sc_img[0, 0]))
         # actually running each test individually and printing results for testing/debugging
         print("\nSmallness Test:", test_smallness(cntr))
-        print("Min Area Box Test:", test_min_area_box(cntr, MIN_AREA_BOX_RATIO_RANGE))
         print(
             "Bounding Box Test:",
             test_bounding_box(cntr, (test_image.shape[0], test_image.shape[1])),
         )
         print("Jaggedness Test:", test_spikiness(cntr))
-        # generates an arbitrary polygon approximation of the contour (tries to remove redundant
-        # points that do not make the contour much different)
-        peri: float = cv2.arcLength(cntr, True)
-        approximate: consts.Contour = cv2.approxPolyDP(cntr, 0.05 * peri, True)
-        print("Polygonness Test:", test_roughness(cntr, approximate))
-        print("Circleness Test:", test_circleness(img2[:, :, 0]))
