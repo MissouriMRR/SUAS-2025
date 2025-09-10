@@ -197,7 +197,7 @@ def calculate_fov(camera: str, fov_type: str) -> float:
     fov_type : str
         Whichever FOV is needed to be calculated ("horizontalFOV" or "verticalFOV")
     """
-    with open("vision/common/camera_config.json", encoding="ascii") as file:
+    with open("vision/common/camera_config.json", "rw", encoding="ascii") as file:
         camera_config: CameraConfig = json.load(file)
         fov: float
         if camera == "Airsim":
