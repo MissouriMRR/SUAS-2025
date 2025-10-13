@@ -25,4 +25,8 @@ RUN pip install -U numpy
 # add GolfCourse location to ArduPilot locations
 RUN echo '# Multirotor Locations\nGolfCourse=37.9490953,-91.7848293,0,0' >> /ardupilot/Tools/autotest/locations.txt
 
-CMD python /ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter -f airsim-copter --out=127.0.0.1:14550
+# Environment Variables
+ENV OUT_HOST=127.0.0.1
+ENV OUT_PORT=14550
+
+CMD python /ardupilot/Tools/autotest/sim_vehicle.py -v ArduCopter -f airsim-copter --out="$OUT_HOST:$OUT_PORT"
