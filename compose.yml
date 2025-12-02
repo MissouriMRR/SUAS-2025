@@ -15,6 +15,10 @@ services:
     stdin_open: true
     tty: true 
   sim:
+    environment:
+      - OUT_PORT=14550
+      - OUT_HOST=127.0.0.1
+      - NUM_DRONES=1
     build:
       context: .
       dockerfile: Sim.Containerfile
@@ -22,3 +26,4 @@ services:
     network_mode: host
     stdin_open: true
     tty: true
+    command: /ardupilot/Tools/autotest/sim_start_drones.sh ${NUM_DRONES}
