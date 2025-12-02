@@ -1,0 +1,43 @@
+{
+    "SettingsVersion": 1.2,
+    "LogMessagesVisible": true,
+    "SimMode": "Multirotor",
+    "OriginGeopoint": {
+        "Latitude": 37.948692,
+        "Longitude": -91.784160,
+        "Altitude": 583
+    },
+    "CameraDefaults": {
+        "CaptureSettings": [
+        {
+            "ImageType": 0,
+            "Width": 1920,
+            "Height": 1080,
+            "FOV_Degrees": 90,
+            "AutoExposureSpeed": 1.0,
+        "AutoExposureBias": 0.0,
+        "ExposureCompensation": -2.0,
+        "ManualExposure": true,
+        "ShutterSpeed": 0.01,
+        "ISO": 100,
+        "Aperture": 16
+        }
+    ]
+    },
+    "Vehicles": {
+        "Copter": {
+            "VehicleType": "ArduCopter",
+            "UseSerial": false,
+            "LocalHostIp": "127.0.0.1",
+            "UdpIp": "127.0.0.1",
+            "UdpPort": 9003,
+            "ControlPort": 9002,
+            "Cameras" : {
+                "bottom_center": {
+                    "X": 0.00, "Y": 0.00, "Z": 0.00,
+                    "Pitch": 270.0, "Roll": 0.0, "Yaw": 0.0
+                }
+            }
+        }
+    }
+} 
